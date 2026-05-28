@@ -267,6 +267,17 @@ h1 {
 #btn-pause.pausing { color: var(--warn); border-color: rgba(251,191,36,.35); background: rgba(251,191,36,.07); cursor: default; }
 #btn-pause.paused  { color: var(--ok);  border-color: rgba(52,211,153,.35);  background: rgba(52,211,153,.07); }
 
+#btn-cancel {
+  width: 30px; height: 30px; border-radius: 50%; flex-shrink: 0;
+  background: rgba(255,255,255,.06); border: 1px solid var(--border2);
+  color: var(--sub); font-size: .65rem; cursor: pointer;
+  padding: 0; line-height: 1;
+  display: flex; align-items: center; justify-content: center;
+  transition: all .2s;
+}
+#btn-cancel:hover { background: rgba(251,113,133,.12); color: var(--err); border-color: rgba(251,113,133,.35); }
+#btn-cancel:disabled { opacity: .4; cursor: not-allowed; }
+
 #prog-badge {
   font-size: .72rem; font-weight: 700; padding: 2px 10px; border-radius: 20px;
   background: rgba(129,140,248,.13); color: var(--a1);
@@ -551,6 +562,7 @@ h1 {
       <div class="prog-status" id="prog-text">Translating...</div>
       <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
         <button id="btn-pause" title="Pause / Resume">⏸</button>
+        <button id="btn-cancel" title="Cancel">✕</button>
         <span id="prog-badge">–</span>
       </div>
     </div>
@@ -656,6 +668,7 @@ const logChev    = document.getElementById('log-chev');
 const logEl      = document.getElementById('log');
 const btnDl      = document.getElementById('btn-download');
 const btnPause   = document.getElementById('btn-pause');
+const btnCancel  = document.getElementById('btn-cancel');
 
 let selectedFile = null, isRunning = false, isPaused = false;
 let currentJobId = null;
@@ -837,6 +850,14 @@ btnPause.addEventListener('click', async () => {
   }
 });
 
+btnCancel.addEventListener('click', async () => {
+  if (!currentJobId) return;
+  btnCancel.disabled = true;
+  btnCancel.textContent = '⏳';
+  addLog('Cancelling translation...', 'warn');
+  await fetch('/cancel/' + currentJobId, {method: 'POST'});
+});
+
 function confetti() {
   const box = document.getElementById('confetti-box');
   const cols = ['#818cf8','#c084fc','#f472b6','#34d399','#fbbf24','#a5f3fc'];
@@ -976,9 +997,21 @@ btnT.addEventListener('click', async () => {
       addLog(`[▶] Resumed — page ${msg.page}`, 'ok');
     }
 
+    if (msg.type === 'cancelled') {
+      sse.close(); stopTimer();
+      btnPause.style.display = 'none';
+      btnCancel.style.display = 'none';
+      pausedBnr.classList.remove('show');
+      progText.innerHTML = '<strong>Translation cancelled</strong>';
+      progBadge.textContent = '✕ Cancelled'; progBadge.className = 'err-badge';
+      addLog('Translation cancelled', 'warn');
+      resetBtn();
+    }
+
     if (msg.type === 'done') {
       sse.close(); stopTimer();
       btnPause.style.display = 'none';
+      btnCancel.style.display = 'none';
       pausedBnr.classList.remove('show');
       progFill.style.width = '100%';
       progFill.classList.add('done'); progFill.classList.remove('paused');
@@ -1049,6 +1082,7 @@ function resetBtn() {
   btnIcon.textContent = '✦'; btnLabel.textContent = 'Translate PDF';
   btnPause.style.display = ''; btnPause.disabled = false;
   btnPause.textContent = '⏸'; btnPause.className = '';
+  btnCancel.style.display = ''; btnCancel.disabled = false; btnCancel.textContent = '✕';
 }
 </script>
 </body>

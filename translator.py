@@ -101,7 +101,7 @@ _FONT_ENTRIES = [
     ("century",     False, False, "CENTURY.TTF"),
 ]
 
-_FONTS_DIR = r"C:\Windows\Fonts"
+_FONTS_DIR = os.path.join(os.environ.get("WINDIR", r"C:\Windows"), "Fonts")
 _FAMILY_INDEX: dict = {}
 
 for _family, _bold, _italic, _filename in _FONT_ENTRIES:
@@ -111,8 +111,12 @@ for _family, _bold, _italic, _filename in _FONT_ENTRIES:
 del _FONT_ENTRIES, _family, _bold, _italic, _filename, _path
 
 _DEFAULT_FONT: str = ""
-for _fp in [r"C:\Windows\Fonts\calibri.ttf", r"C:\Windows\Fonts\arial.ttf",
-            r"C:\Windows\Fonts\verdana.ttf", r"C:\Windows\Fonts\tahoma.ttf"]:
+for _fp in [
+    os.path.join(_FONTS_DIR, "calibri.ttf"),
+    os.path.join(_FONTS_DIR, "arial.ttf"),
+    os.path.join(_FONTS_DIR, "verdana.ttf"),
+    os.path.join(_FONTS_DIR, "tahoma.ttf"),
+]:
     if os.path.exists(_fp):
         _DEFAULT_FONT = _fp
         break
@@ -194,7 +198,7 @@ _LIGATURES = str.maketrans({
     'ﬀ': 'ff', 'ﬁ': 'fi', 'ﬂ': 'fl',
     'ﬃ': 'ffi', 'ﬄ': 'ffl', 'ﬅ': 'ft', 'ﬆ': 'st',
     '\xad': '', '​': '', '‌': '', '‍': '', '﻿': '',
-    '’': "'", '‘': "'", '“': '"', '”': '"',
+    '‘': "'", '’': "'", '“': '"', '”': '"',
     '–': '-', '—': '-', ' ': ' ',
 })
 
@@ -384,7 +388,8 @@ def insert_text_block(page, rect: fitz.Rect, text: str,
 
 def translate_pdf(input_path: str, output_path: str = None,
                   src_lang: str = "en", tgt_lang: str = "sr",
-                  progress_callback=None, pause_event=None) -> bool:
+                  progress_callback=None, pause_event=None,
+                  cancel_event=None) -> bool:
     input_path = os.path.abspath(input_path)
     if not os.path.exists(input_path):
         _safe_print(f"Error: file not found - {input_path}")
@@ -394,7 +399,7 @@ def translate_pdf(input_path: str, output_path: str = None,
         output_path = str(p.parent / f"{p.stem}_translated.pdf")
 
     _safe_print("\n" + "=" * 56)
-    _safe_print("  PDF TRANSLATOR  -  english -> serbian")
+    _safe_print(f"  PDF TRANSLATOR  -  {src_lang} -> {tgt_lang}")
     _safe_print("=" * 56)
     _safe_print(f"  Input  : {input_path}")
     _safe_print(f"  Output : {output_path}")
@@ -427,6 +432,8 @@ def translate_pdf(input_path: str, output_path: str = None,
         with ThreadPoolExecutor(max_workers=2) as pool:
             futures = {pool.submit(translate_batch, g, src_lang, tgt_lang): len(g) for g in groups}
             for future in as_completed(futures):
+                if cancel_event and cancel_event.is_set():
+                    break
                 future.result()
                 done_count += futures[future]
                 if progress_callback:
@@ -435,11 +442,22 @@ def translate_pdf(input_path: str, output_path: str = None,
         if progress_callback:
             progress_callback({"type": "translating", "done": 0, "total": 0, "pages": total})
 
+    if cancel_event and cancel_event.is_set():
+        doc.close()
+        return False
+
     for i in range(total):
+        if cancel_event and cancel_event.is_set():
+            doc.close()
+            return False
+
         if pause_event is not None and not pause_event.is_set():
             if progress_callback:
                 progress_callback({"type": "paused", "page": i + 1, "total": total})
             pause_event.wait()
+            if cancel_event and cancel_event.is_set():
+                doc.close()
+                return False
             if progress_callback:
                 progress_callback({"type": "resumed", "page": i + 1, "total": total})
 

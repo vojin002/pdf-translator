@@ -4,6 +4,7 @@ import time
 import json
 import uuid
 import queue
+import socket
 import threading
 import tempfile
 import urllib.request
@@ -24,7 +25,36 @@ app = Flask(__name__)
 app.config["MAX_CONTENT_LENGTH"] = 100 * 1024 * 1024
 
 JOBS: dict = {}
+JOBS_LOCK = threading.Lock()
 INDEX_HTML = Path(__file__).parent / "index.html"
+
+_JOB_TTL = 3600
+
+
+def _remove_job(job_id: str):
+    with JOBS_LOCK:
+        job = JOBS.pop(job_id, None)
+    if job:
+        for path in (job.get("input_path"), job.get("output_path")):
+            if path:
+                try:
+                    os.remove(path)
+                except OSError:
+                    pass
+
+
+def _cleanup_old_jobs():
+    while True:
+        time.sleep(300)
+        cutoff = time.monotonic() - _JOB_TTL
+        with JOBS_LOCK:
+            stale = [jid for jid, j in JOBS.items()
+                     if j.get("done") and j.get("created_at", 0) < cutoff]
+        for jid in stale:
+            _remove_job(jid)
+
+
+threading.Thread(target=_cleanup_old_jobs, daemon=True).start()
 
 
 @app.route("/")
@@ -44,22 +74,27 @@ def upload():
     f.save(input_path)
     resume_event = threading.Event()
     resume_event.set()
-    JOBS[job_id] = {
-        "input_path": input_path,
-        "output_path": output_path,
-        "filename": f.filename,
-        "src_lang": request.form.get("src_lang", "en"),
-        "tgt_lang": request.form.get("tgt_lang", "sr"),
-        "queue": queue.Queue(),
-        "resume_event": resume_event,
-        "done": False,
-    }
+    cancel_event = threading.Event()
+    with JOBS_LOCK:
+        JOBS[job_id] = {
+            "input_path": input_path,
+            "output_path": output_path,
+            "filename": f.filename,
+            "src_lang": request.form.get("src_lang", "en"),
+            "tgt_lang": request.form.get("tgt_lang", "sr"),
+            "queue": queue.Queue(),
+            "resume_event": resume_event,
+            "cancel_event": cancel_event,
+            "done": False,
+            "created_at": time.monotonic(),
+        }
     return jsonify({"job_id": job_id})
 
 
 @app.route("/translate/<job_id>")
 def start_translate(job_id):
-    job = JOBS.get(job_id)
+    with JOBS_LOCK:
+        job = JOBS.get(job_id)
     if not job:
         return jsonify({"error": "Job not found"}), 404
     threading.Thread(target=_run_job, args=(job_id,), daemon=True).start()
@@ -67,7 +102,10 @@ def start_translate(job_id):
 
 
 def _run_job(job_id: str):
-    job = JOBS[job_id]
+    with JOBS_LOCK:
+        job = JOBS.get(job_id)
+    if not job:
+        return
     q = job["queue"]
 
     def cb(msg):
@@ -81,17 +119,26 @@ def _run_job(job_id: str):
             tgt_lang=job["tgt_lang"],
             progress_callback=cb,
             pause_event=job["resume_event"],
+            cancel_event=job["cancel_event"],
         )
-        q.put({"type": "done"} if ok else {"type": "error", "msg": "Translation failed"})
+        if job["cancel_event"].is_set():
+            q.put({"type": "cancelled"})
+        elif ok:
+            q.put({"type": "done"})
+        else:
+            q.put({"type": "error", "msg": "Translation failed"})
     except Exception as e:
         q.put({"type": "error", "msg": str(e)})
     finally:
-        job["done"] = True
+        with JOBS_LOCK:
+            if job_id in JOBS:
+                JOBS[job_id]["done"] = True
 
 
 @app.route("/pause/<job_id>", methods=["POST"])
 def pause_job(job_id):
-    job = JOBS.get(job_id)
+    with JOBS_LOCK:
+        job = JOBS.get(job_id)
     if not job or job["done"]:
         return jsonify({"error": "Job not active"}), 404
     job["resume_event"].clear()
@@ -100,16 +147,29 @@ def pause_job(job_id):
 
 @app.route("/resume/<job_id>", methods=["POST"])
 def resume_job(job_id):
-    job = JOBS.get(job_id)
+    with JOBS_LOCK:
+        job = JOBS.get(job_id)
     if not job:
         return jsonify({"error": "Job not found"}), 404
     job["resume_event"].set()
     return jsonify({"status": "resumed"})
 
 
+@app.route("/cancel/<job_id>", methods=["POST"])
+def cancel_job(job_id):
+    with JOBS_LOCK:
+        job = JOBS.get(job_id)
+    if not job:
+        return jsonify({"error": "Job not found"}), 404
+    job["cancel_event"].set()
+    job["resume_event"].set()
+    return jsonify({"status": "cancelling"})
+
+
 @app.route("/stream/<job_id>")
 def stream(job_id):
-    job = JOBS.get(job_id)
+    with JOBS_LOCK:
+        job = JOBS.get(job_id)
     if not job:
         return "", 404
 
@@ -122,7 +182,7 @@ def stream(job_id):
                 yield 'data: {"type":"error","msg":"Timeout"}\n\n'
                 break
             yield f"data: {json.dumps(msg, ensure_ascii=False)}\n\n"
-            if msg.get("type") in ("done", "error"):
+            if msg.get("type") in ("done", "error", "cancelled"):
                 break
 
     return Response(
@@ -134,16 +194,30 @@ def stream(job_id):
 
 @app.route("/download/<job_id>")
 def download(job_id):
-    job = JOBS.get(job_id)
+    with JOBS_LOCK:
+        job = JOBS.get(job_id)
     if not job or not os.path.exists(job["output_path"]):
         return "File not found", 404
     stem = Path(job["filename"]).stem
+    output_path = job["output_path"]
+    threading.Timer(30.0, _remove_job, args=(job_id,)).start()
     return send_file(
-        job["output_path"],
+        output_path,
         as_attachment=True,
         download_name=f"{stem}_translated.pdf",
         mimetype="application/pdf",
     )
+
+
+def _find_free_port(start: int = 5173) -> int:
+    for port in range(start, start + 100):
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            try:
+                s.bind(("127.0.0.1", port))
+                return port
+            except OSError:
+                continue
+    raise RuntimeError("No free port available in range 5173-5272")
 
 
 def _build_icon(dest: str):
@@ -199,7 +273,7 @@ if __name__ == "__main__":
     except Exception:
         pass
 
-    PORT = 5173
+    PORT = _find_free_port(5173)
 
     icon_path = str(Path(__file__).parent / "icon.ico")
     if not os.path.exists(icon_path):
