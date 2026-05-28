@@ -196,11 +196,20 @@ def _save_cache():
 _cache = _load_cache()
 
 _LIGATURES = str.maketrans({
-    'ﬀ': 'ff', 'ﬁ': 'fi', 'ﬂ': 'fl',
-    'ﬃ': 'ffi', 'ﬄ': 'ffl', 'ﬅ': 'ft', 'ﬆ': 'st',
-    '\xad': '', '​': '', '‌': '', '‍': '', '﻿': '',
-    ''': "'", ''': "'", '"': '"', '"': '"',
-    '–': '-', '—': '-', ' ': ' ',
+    0xFB00: 'ff', 0xFB01: 'fi', 0xFB02: 'fl',
+    0xFB03: 'ffi', 0xFB04: 'ffl', 0xFB05: 'ft', 0xFB06: 'st',
+    0x00AD: '',   # soft hyphen
+    0x200B: '',   # zero-width space
+    0x200C: '',   # zero-width non-joiner
+    0x200D: '',   # zero-width joiner
+    0xFEFF: '',   # BOM
+    0x2018: "'",  # left single quote
+    0x2019: "'",  # right single quote
+    0x201C: '"',  # left double quote
+    0x201D: '"',  # right double quote
+    0x2013: '-',  # en dash
+    0x2014: '-',  # em dash
+    0x00A0: ' ',  # non-breaking space
 })
 
 _HYPHEN_BREAK = re.compile(r'(\w)-\n(\w)')
