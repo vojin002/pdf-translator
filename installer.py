@@ -449,9 +449,13 @@ class _H(BaseHTTPRequestHandler):
             except (BrokenPipeError, ConnectionResetError, OSError):
                 pass
         elif p == "/launch":
-            try:
-                subprocess.Popen(["pythonw", str(_dir / "app.py")])
-            except FileNotFoundError:
+            import platform as _plat
+            if _plat.system() == "Windows":
+                try:
+                    subprocess.Popen(["pythonw", str(_dir / "app.py")])
+                except FileNotFoundError:
+                    subprocess.Popen([sys.executable, str(_dir / "app.py")])
+            else:
                 subprocess.Popen([sys.executable, str(_dir / "app.py")])
             self._json({"ok": True})
             threading.Thread(target=_close_app, daemon=True).start()

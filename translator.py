@@ -4,6 +4,7 @@ import re
 import json
 import time
 import threading
+import platform
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
@@ -41,86 +42,75 @@ except Exception:
     _redact_kw = {"images": 0}
 del _inspect
 
+# --- optional OCR support ---
+try:
+    import pytesseract as _tess
+    from PIL import Image as _PILImage
+    _OCR_AVAILABLE = True
+except ImportError:
+    _OCR_AVAILABLE = False
 
-_FONT_ENTRIES = [
-    ("arial",       False, False, "arial.ttf"),
-    ("arial",       True,  False, "arialbd.ttf"),
-    ("arial",       False, True,  "ariali.ttf"),
-    ("arial",       True,  True,  "arialbi.ttf"),
-    ("helvetica",   False, False, "arial.ttf"),
-    ("helvetica",   True,  False, "arialbd.ttf"),
-    ("helvetica",   False, True,  "ariali.ttf"),
-    ("helvetica",   True,  True,  "arialbi.ttf"),
-    ("times",       False, False, "times.ttf"),
-    ("times",       True,  False, "timesbd.ttf"),
-    ("times",       False, True,  "timesi.ttf"),
-    ("times",       True,  True,  "timesbi.ttf"),
-    ("calibri",     False, False, "calibri.ttf"),
-    ("calibri",     True,  False, "calibrib.ttf"),
-    ("calibri",     False, True,  "calibrii.ttf"),
-    ("calibri",     True,  True,  "calibriz.ttf"),
-    ("cambria",     False, False, "cambria.ttc"),
-    ("cambria",     True,  False, "cambriab.ttf"),
-    ("cambria",     False, True,  "cambriai.ttf"),
-    ("cambria",     True,  True,  "cambriaz.ttf"),
-    ("georgia",     False, False, "georgia.ttf"),
-    ("georgia",     True,  False, "georgiab.ttf"),
-    ("georgia",     False, True,  "georgiai.ttf"),
-    ("georgia",     True,  True,  "georgiaz.ttf"),
-    ("verdana",     False, False, "verdana.ttf"),
-    ("verdana",     True,  False, "verdanab.ttf"),
-    ("verdana",     False, True,  "verdanai.ttf"),
-    ("verdana",     True,  True,  "verdanaz.ttf"),
-    ("tahoma",      False, False, "tahoma.ttf"),
-    ("tahoma",      True,  False, "tahomabd.ttf"),
-    ("trebuchet",   False, False, "trebuc.ttf"),
-    ("trebuchet",   True,  False, "trebucbd.ttf"),
-    ("trebuchet",   False, True,  "trebucit.ttf"),
-    ("trebuchet",   True,  True,  "trebucbi.ttf"),
-    ("courier",     False, False, "cour.ttf"),
-    ("courier",     True,  False, "courbd.ttf"),
-    ("courier",     False, True,  "couri.ttf"),
-    ("courier",     True,  True,  "courbi.ttf"),
-    ("palatino",    False, False, "pala.ttf"),
-    ("palatino",    True,  False, "palab.ttf"),
-    ("palatino",    False, True,  "palai.ttf"),
-    ("palatino",    True,  True,  "palabi.ttf"),
-    ("garamond",    False, False, "GARA.TTF"),
-    ("garamond",    True,  False, "GARABD.TTF"),
-    ("impact",      False, False, "impact.ttf"),
-    ("comic",       False, False, "comic.ttf"),
-    ("comic",       True,  False, "comicbd.ttf"),
-    ("segoe",       False, False, "segoeui.ttf"),
-    ("segoe",       True,  False, "segoeuib.ttf"),
-    ("segoe",       False, True,  "segoeuii.ttf"),
-    ("segoe",       True,  True,  "segoeuiz.ttf"),
-    ("bookman",     False, False, "BKANT.TTF"),
-    ("gothic",      False, False, "GOTHIC.TTF"),
-    ("franklin",    False, False, "FRAMD.TTF"),
-    ("franklin",    True,  False, "FRAMDIT.TTF"),
-    ("century",     False, False, "CENTURY.TTF"),
-]
 
-_FONTS_DIR = os.path.join(os.environ.get("WINDIR", r"C:\Windows"), "Fonts")
-_FAMILY_INDEX: dict = {}
+# --- cross-platform font discovery ---
 
-for _family, _bold, _italic, _filename in _FONT_ENTRIES:
-    _path = os.path.join(_FONTS_DIR, _filename)
-    if os.path.exists(_path):
-        _FAMILY_INDEX.setdefault(_family, []).append((_bold, _italic, _path))
-del _FONT_ENTRIES, _family, _bold, _italic, _filename, _path
+def _font_dirs() -> list:
+    home = Path.home()
+    system = platform.system()
+    if system == "Windows":
+        return [os.path.join(os.environ.get("WINDIR", r"C:\Windows"), "Fonts")]
+    if system == "Darwin":
+        return [
+            "/Library/Fonts",
+            "/System/Library/Fonts",
+            str(home / "Library" / "Fonts"),
+        ]
+    return [
+        "/usr/share/fonts",
+        "/usr/local/share/fonts",
+        str(home / ".fonts"),
+        str(home / ".local" / "share" / "fonts"),
+    ]
+
+
+def _scan_fonts(dirs: list) -> dict:
+    index: dict = {}
+    for d in dirs:
+        if not os.path.isdir(d):
+            continue
+        for root, _, files in os.walk(d):
+            for fname in files:
+                if not fname.lower().endswith((".ttf", ".otf", ".ttc")):
+                    continue
+                path = os.path.join(root, fname)
+                stem = fname.lower().rsplit(".", 1)[0]
+                bold   = any(k in stem for k in ("bold", "-bd", "heavy", "black"))
+                italic = any(k in stem for k in ("italic", "oblique", "-it", "-sl"))
+                base = stem
+                for s in ("-bolditalic", "-boldoblique", "-bold", "-italic", "-oblique",
+                           "-regular", "-light", "-medium", "-condensed", "-narrow",
+                           "-black", "-thin", "bolditalic", "boldmt", "bold",
+                           "italic", "oblique", "regular", "mt", "ps",
+                           "-mt", "-ps", "-bd", "-bi", "-it", "-sl"):
+                    if base.endswith(s):
+                        base = base[:-len(s)]
+                        break
+                base = base.strip("-_ ")
+                if base:
+                    index.setdefault(base, []).append((bold, italic, path))
+    return index
+
+
+_FAMILY_INDEX = _scan_fonts(_font_dirs())
 
 _DEFAULT_FONT: str = ""
-for _fp in [
-    os.path.join(_FONTS_DIR, "calibri.ttf"),
-    os.path.join(_FONTS_DIR, "arial.ttf"),
-    os.path.join(_FONTS_DIR, "verdana.ttf"),
-    os.path.join(_FONTS_DIR, "tahoma.ttf"),
-]:
-    if os.path.exists(_fp):
-        _DEFAULT_FONT = _fp
+for _fam in ("arial", "helvetica", "liberationsans", "freesans",
+             "dejavusans", "calibri", "verdana", "tahoma", "ubuntu"):
+    _variants = _FAMILY_INDEX.get(_fam, [])
+    _reg = next((p for b, i, p in _variants if not b and not i), None)
+    if _reg:
+        _DEFAULT_FONT = _reg
         break
-del _fp
+del _fam, _variants, _reg
 
 _font_resolve_cache: dict = {}
 
@@ -131,7 +121,7 @@ def resolve_font(pdf_font_name: str, flags: int) -> str:
         return _font_resolve_cache[cache_key]
     name = pdf_font_name.split("+")[-1] if "+" in pdf_font_name else pdf_font_name
     n = name.lower()
-    is_bold = bool(flags & (1 << 4)) or any(k in n for k in ("bold", "-bd", ",bold"))
+    is_bold   = bool(flags & (1 << 4)) or any(k in n for k in ("bold", "-bd", ",bold"))
     is_italic = (bool(flags & (1 << 1))
                  or any(k in n for k in ("italic", "oblique", "-it", "-sl", ",italic")))
     base = n
@@ -144,14 +134,16 @@ def resolve_font(pdf_font_name: str, flags: int) -> str:
     result = _DEFAULT_FONT
     for family, variants in _FAMILY_INDEX.items():
         if family in base or base.startswith(family[:5]):
-            exact = next((p for b, i, p in variants if b == is_bold and i == is_italic), None)
+            exact   = next((p for b, i, p in variants if b == is_bold and i == is_italic), None)
             regular = next((p for b, i, p in variants if not b and not i), None)
-            result = exact or regular or result
+            result  = exact or regular or result
             if exact or regular:
                 break
     _font_resolve_cache[cache_key] = result
     return result
 
+
+# --- translation API ---
 
 _tl = threading.local()
 
@@ -293,7 +285,7 @@ def translate_single(text: str, src: str = "en", tgt: str = "sr") -> str:
     sentences = _SENT_END.split(n)
     chunks, cur = [], ""
     for sent in sentences:
-        if len(cur) + len(sent) + 1 > MAX:
+        if len(cur) + len(sent) + 1 > _MAX_CHUNK:
             if cur:
                 chunks.append(cur)
             cur = sent
@@ -350,6 +342,17 @@ def unpack_color(color) -> tuple:
     return (0.0, 0.0, 0.0)
 
 
+def _ocr_text(page) -> str:
+    if not _OCR_AVAILABLE:
+        return ""
+    try:
+        pix = page.get_pixmap(matrix=fitz.Matrix(2, 2))
+        img = _PILImage.frombytes("RGB", [pix.width, pix.height], pix.samples)
+        return _tess.image_to_string(img).strip()
+    except Exception:
+        return ""
+
+
 def extract_text_blocks(page) -> list:
     data = page.get_text("dict", flags=fitz.TEXT_PRESERVE_WHITESPACE)
     blocks = []
@@ -375,6 +378,22 @@ def extract_text_blocks(page) -> list:
             "font_name": anchor_span.get("font", ""),
             "flags":     anchor_span.get("flags", 0),
         })
+
+    if not blocks:
+        has_images = any(blk["type"] == 1 for blk in data["blocks"])
+        if has_images:
+            text = _ocr_text(page)
+            if text and _should_translate(text):
+                blocks.append({
+                    "rect":      page.rect,
+                    "text":      text,
+                    "size":      9.0,
+                    "color":     (0.0, 0.0, 0.0),
+                    "font_name": "Arial",
+                    "flags":     0,
+                    "ocr":       True,
+                })
+
     return blocks
 
 
@@ -408,6 +427,8 @@ def translate_pdf(input_path: str, output_path: str = None,
 
     _safe_print("\n" + "=" * 56)
     _safe_print(f"  PDF TRANSLATOR  -  {src_lang} -> {tgt_lang}")
+    if _OCR_AVAILABLE:
+        _safe_print("  OCR: enabled")
     _safe_print("=" * 56)
     _safe_print(f"  Input  : {input_path}")
     _safe_print(f"  Output : {output_path}")
@@ -485,15 +506,28 @@ def translate_pdf(input_path: str, output_path: str = None,
                 tr = _cache_get(f"{src_lang}|{tgt_lang}|{n}") if _should_translate(n) else None
                 translations.append(tr if tr is not None else blk["text"])
 
-            for blk in blocks:
-                page.add_redact_annot(blk["rect"], fill=(1, 1, 1))
-            page.apply_redactions(**_redact_kw)
+            is_ocr_page = blocks[0].get("ocr", False)
 
-            for blk, tr in zip(blocks, translations):
-                insert_text_block(page, blk["rect"], tr,
-                                  blk["size"], blk["color"], blk["font_name"], blk["flags"])
+            if is_ocr_page:
+                # Keep original image, add translated text in a white strip at the bottom
+                r = page.rect
+                strip = fitz.Rect(r.x0 + 10, r.y1 - min(r.height * 0.35, 220),
+                                  r.x1 - 10, r.y1 - 10)
+                page.add_redact_annot(strip, fill=(1, 1, 1))
+                page.apply_redactions(**_redact_kw)
+                page.insert_textbox(strip, translations[0],
+                                    fontsize=8, color=(0.1, 0.1, 0.1),
+                                    align=fitz.TEXT_ALIGN_LEFT)
+            else:
+                for blk in blocks:
+                    page.add_redact_annot(blk["rect"], fill=(1, 1, 1))
+                page.apply_redactions(**_redact_kw)
+                for blk, tr in zip(blocks, translations):
+                    insert_text_block(page, blk["rect"], tr,
+                                      blk["size"], blk["color"], blk["font_name"], blk["flags"])
 
-            _safe_print(f"  [{i+1}/{total}] Done ({len(blocks)} blocks)", flush=True)
+            ocr_label = " [OCR]" if is_ocr_page else ""
+            _safe_print(f"  [{i+1}/{total}] Done ({len(blocks)} block(s)){ocr_label}", flush=True)
             if progress_callback:
                 progress_callback({"type": "page_done", "page": i + 1, "total": total})
 

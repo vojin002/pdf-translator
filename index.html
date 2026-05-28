@@ -641,8 +641,15 @@ function buildLangSelect(id, defaultCode) {
     sel.appendChild(o);
   });
 }
-buildLangSelect('src-lang', 'en');
-buildLangSelect('tgt-lang', 'sr');
+buildLangSelect('src-lang', localStorage.getItem('src_lang') || 'en');
+buildLangSelect('tgt-lang', localStorage.getItem('tgt_lang') || 'sr');
+
+document.getElementById('src-lang').addEventListener('change', e => localStorage.setItem('src_lang', e.target.value));
+document.getElementById('tgt-lang').addEventListener('change', e => localStorage.setItem('tgt_lang', e.target.value));
+
+if ('Notification' in window && Notification.permission === 'default') {
+  Notification.requestPermission();
+}
 
 const dz         = document.getElementById('dropzone');
 const fileInput  = document.getElementById('file-input');
@@ -1019,6 +1026,9 @@ btnT.addEventListener('click', async () => {
       progBadge.textContent = '✓ Done'; progBadge.className = 'done-badge';
       if (pTotal > 0 && pTotal <= 24) updateDots(pTotal+1, pTotal);
       addLog('Translation completed successfully!', 'ok');
+      if ('Notification' in window && Notification.permission === 'granted' && document.hidden) {
+        new Notification('PDF Translator', { body: 'Translation complete! Ready to download.' });
+      }
       btnDl.dataset.jobId = jobId;
       btnDl.dataset.fname = selectedFile.name.replace(/\.pdf$/i, '') + '_translated.pdf';
       btnDl.classList.add('show');
