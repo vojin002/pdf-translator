@@ -1,0 +1,8 @@
+__pycache__/
+*.pyc
+*.pyo
+
+translations_cache.json
+icon.ico
+
+.claude/
