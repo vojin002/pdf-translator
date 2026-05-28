@@ -34,7 +34,7 @@ Desktop aplikacija za prevod PDF dokumenata sa engleskog na srpski uz očuvanje 
 ### 1. Preuzmi projekat
 
 ```bash
-git clone https://github.com/korisnickoime/pdf-translator-sr.git
+git clone https://github.com/vojin002/pdf-translator-sr.git
 ```
 
 ili preuzmi ZIP sa GitHub-a i raspakuj.
