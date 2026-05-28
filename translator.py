@@ -235,6 +235,8 @@ def _should_translate(text: str) -> bool:
     return sum(1 for c in stripped if c.isalpha()) >= 3
 
 
+_MAX_CHUNK = 4500
+
 _SEP = " ⟦§⟧ "
 _SEP_PAT = re.compile(r"\s*⟦§⟧\s*")
 
@@ -275,8 +277,7 @@ def translate_single(text: str, src: str = "en", tgt: str = "sr") -> str:
     cached = _cache_get(ck)
     if cached is not None:
         return cached
-    MAX = 4500
-    if len(n) <= MAX:
+    if len(n) <= _MAX_CHUNK:
         result = _call(n, src, tgt)
         _cache_set(ck, result)
         return result
@@ -307,7 +308,7 @@ def translate_batch(texts: list, src: str = "en", tgt: str = "sr") -> list:
     if all(r is not None for r in cached_all):
         return cached_all
     joined = _SEP.join(normed)
-    if len(joined) > 4500:
+    if len(joined) > _MAX_CHUNK:
         mid = len(texts) // 2
         return translate_batch(texts[:mid], src, tgt) + translate_batch(texts[mid:], src, tgt)
     joined_ck = f"{src}|{tgt}|{joined}"
