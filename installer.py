@@ -26,10 +26,10 @@ def _add_event(evt: dict):
         _events_cond.notify_all()
 
 _PACKAGES = [
-    ("pymupdf",        "📄", "PyMuPDF",        "Obrada i editovanje PDF dokumenata"),
+    ("pymupdf",        "📄", "PyMuPDF",        "PDF processing and editing"),
     ("deep-translator","🌐", "deep-translator", "Google Translate API"),
-    ("flask",          "⚗", "Flask",           "Lokalni web server"),
-    ("pywebview",      "🪟", "pywebview",       "Desktop prozor aplikacije"),
+    ("flask",          "⚗", "Flask",           "Local web server"),
+    ("pywebview",      "🪟", "pywebview",       "Desktop application window"),
 ]
 
 _ANSI = re.compile(r"\x1b\[[0-9;]*[mGKH]")
@@ -58,13 +58,13 @@ def _bootstrap() -> bool:
         root.geometry(f"{w}x{h}+{(sw - w)//2}+{(sh - h)//2}")
         tk.Label(root, text="⚙", fg="#818cf8", bg="#07070e",
                  font=("Segoe UI", 32)).pack(pady=(16, 6))
-        msg = tk.StringVar(value="Priprema instalater...")
+        msg = tk.StringVar(value="Preparing installer...")
         tk.Label(root, textvariable=msg, fg="#8892aa", bg="#07070e",
                  font=("Segoe UI", 11)).pack()
         root.update()
         ok = [False]
         def _do():
-            root.after(0, msg.set, "Instaliram pywebview...")
+            root.after(0, msg.set, "Installing pywebview...")
             r = subprocess.run(
                 [sys.executable, "-m", "pip", "install", "pywebview", "-q"],
                 capture_output=True,
@@ -88,7 +88,7 @@ def _show_error(msg: str):
         from tkinter import messagebox
         r = tk.Tk()
         r.withdraw()
-        messagebox.showerror("PDF Prevodilac — Instalacija", msg)
+        messagebox.showerror("PDF Translator — Installation", msg)
         r.destroy()
     except Exception:
         print(f"[ERROR] {msg}")
@@ -96,10 +96,10 @@ def _show_error(msg: str):
 
 
 _HTML = """\
-<!DOCTYPE html><html lang="sr"><head>
+<!DOCTYPE html><html lang="en"><head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Instalacija — PDF Prevodilac</title>
+<title>Installation — PDF Translator</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
@@ -248,40 +248,40 @@ h1{font-size:1.4rem;font-weight:700;letter-spacing:-.02em;line-height:1;
   <div class="hd">
     <div class="logo">
       <div class="logo-badge">⚙</div>
-      <div><h1>Instalacija</h1><div class="logo-sub">PDF Prevodilac — podešavanje</div></div>
+      <div><h1>Installation</h1><div class="logo-sub">PDF Translator — setup</div></div>
     </div>
     <div class="py-badge">🐍 Python <b>__VER__</b></div>
   </div>
   <div class="steps">
     <div class="step done" id="s1"><div class="sn">✓</div><div class="sl">Python</div></div>
     <div class="step-line done"></div>
-    <div class="step active" id="s2"><div class="sn">2</div><div class="sl">Paketi</div></div>
+    <div class="step active" id="s2"><div class="sn">2</div><div class="sl">Packages</div></div>
     <div class="step-line" id="l2"></div>
-    <div class="step" id="s3"><div class="sn">3</div><div class="sl">Gotovo</div></div>
+    <div class="step" id="s3"><div class="sn">3</div><div class="sl">Done</div></div>
   </div>
   <div class="pkg-list">__ROWS__</div>
   <button class="btn btn-install" id="btn" onclick="go()">
-    <span id="bi">⬇</span><span id="bl">Instaliraj pakete</span>
+    <span id="bi">⬇</span><span id="bl">Install packages</span>
   </button>
   <button class="btn btn-launch" id="btnL" onclick="launch()">
-    <span>✦</span><span>Pokreni PDF Prevodilac</span>
+    <span>✦</span><span>Launch PDF Translator</span>
   </button>
   <div id="pw">
     <div class="prog-track"><div id="pf"></div></div>
-    <div id="pt">Priprema...</div>
+    <div id="pt">Preparing...</div>
   </div>
   <div id="lw">
     <div class="lhdr" onclick="tgl()">
-      <span class="ltit">Detalji instalacije</span>
+      <span class="ltit">Installation details</span>
       <span class="lcnt" id="lc">0</span>
       <span class="lchev" id="lv">▾</span>
     </div>
     <div id="lb"><div id="log"></div></div>
   </div>
   <div class="card-ft">
-    <span>Lokalna instalacija</span><div class="ft-dot"></div>
-    <span>Besplatno</span><div class="ft-dot"></div>
-    <span>Bez internet zavisnosti</span>
+    <span>Local installation</span><div class="ft-dot"></div>
+    <span>Free</span><div class="ft-dot"></div>
+    <span>No internet dependency</span>
   </div>
 </main>
 <script>
@@ -314,46 +314,46 @@ function setPkg(id,state,lbl){
 function go(){
   btn.disabled=true;
   bi.innerHTML='<span class="spin">⟳</span>';
-  bl.textContent='Instaliram...';
+  bl.textContent='Installing...';
   e('pw').classList.add('show');
   if(!lb.classList.contains('open')) tgl();
   fetch('/start').then(()=>{
     const sse=new EventSource('/stream');
     sse.onmessage=ev=>{
       const d=JSON.parse(ev.data);
-      if(d.t==='pkg_start'){setPkg(d.pkg,'installing','⟳ Instaliram...');pt.innerHTML='Instaliram <strong>'+d.pkg+'</strong>...';addLog('Instaliram '+d.pkg+'...','di');}
+      if(d.t==='pkg_start'){setPkg(d.pkg,'installing','⟳ Installing...');pt.innerHTML='Installing <strong>'+d.pkg+'</strong>...';addLog('Installing '+d.pkg+'...','di');}
       if(d.t==='pkg_done'){setPkg(d.pkg,'done','✓ OK');addLog(d.pkg+' OK','ok');}
-      if(d.t==='pkg_err'){setPkg(d.pkg,'error','✗ Greška');addLog('GREŠKA: '+d.pkg+(d.d?' — '+d.d:''),'er');}
+      if(d.t==='pkg_err'){setPkg(d.pkg,'error','✗ Error');addLog('ERROR: '+d.pkg+(d.d?' — '+d.d:''),'er');}
       if(d.t==='prog'){pf.style.width=Math.round(d.d/d.tot*100)+'%';}
       if(d.t==='log'&&d.m) addLog(d.m,'di');
       if(d.t==='done'){
         _evtDone=true; sse.close(); pf.style.width='100%'; pf.classList.add('done');
         if(d.ok){
-          pt.innerHTML='<strong>Instalacija završena!</strong>';
+          pt.innerHTML='<strong>Installation complete!</strong>';
           setStep(3);
-          bi.textContent='✓'; bl.textContent='Instalirano';
+          bi.textContent='✓'; bl.textContent='Installed';
           btn.style.cssText='display:flex;align-items:center;justify-content:center;gap:9px;'+
             'width:100%;padding:13px 20px;border-radius:var(--r);font-family:inherit;'+
             'font-size:.94rem;font-weight:700;letter-spacing:-.01em;cursor:default;'+
             'background:rgba(129,140,248,.08);border:1px solid rgba(129,140,248,.2);'+
             'color:var(--a1);box-shadow:none';
           btnL.classList.add('show');
-          addLog('Sve instalirano.','ok');
+          addLog('All packages installed.','ok');
         } else {
-          pt.innerHTML='<strong style="color:var(--err)">Instalacija nije uspela.</strong>';
-          btn.disabled=false; btn.style.cssText=''; bi.textContent='↺'; bl.textContent='Pokusaj ponovo';
-          addLog('Pogledaj log za detalje.','er');
+          pt.innerHTML='<strong style="color:var(--err)">Installation failed.</strong>';
+          btn.disabled=false; btn.style.cssText=''; bi.textContent='↺'; bl.textContent='Try again';
+          addLog('Check the log for details.','er');
         }
       }
     };
-    sse.onerror=()=>{if(!_evtDone){addLog('Greška veze — pokušavam ponovo...','di');}else{sse.close();}};
+    sse.onerror=()=>{if(!_evtDone){addLog('Connection error — retrying...','di');}else{sse.close();}};
   });
 }
 function launch(){
-  btnL.innerHTML='<span class="spin">⟳</span><span>Pokretanje...</span>';
+  btnL.innerHTML='<span class="spin">⟳</span><span>Launching...</span>';
   btnL.disabled=true;
   setTimeout(()=>{
-    btnL.innerHTML='<span>✓</span><span>Aplikacija pokrenuta!</span>';
+    btnL.innerHTML='<span>✓</span><span>Application launched!</span>';
   }, 600);
   fetch('/launch').catch(()=>{});
 }
@@ -366,7 +366,7 @@ def _build_html() -> str:
         f'<div class="pkg-ic">{ico}</div>'
         f'<div class="pkg-info"><div class="pkg-name">{name}</div>'
         f'<div class="pkg-desc">{desc}</div></div>'
-        f'<div class="pkg-st" id="st-{pid}">Ceka</div></div>'
+        f'<div class="pkg-st" id="st-{pid}">Waiting</div></div>'
         for pid, ico, name, desc in _PACKAGES
     )
     return _HTML.replace("__VER__", sys.version.split()[0]).replace("__ROWS__", rows)
@@ -487,20 +487,20 @@ def _close_app():
 
 if __name__ == "__main__":
     if sys.version_info < (3, 9):
-        _show_error(f"Potreban Python 3.9+.\nImas {sys.version_info.major}.{sys.version_info.minor}.")
+        _show_error(f"Python 3.9+ is required.\nYou have {sys.version_info.major}.{sys.version_info.minor}.")
         sys.exit(1)
 
     if sys.version_info >= (3, 13):
         _show_error(
-            f"Upozorenje: Python {sys.version_info.major}.{sys.version_info.minor} "
-            f"je prenov — paketi poput PyMuPDF nemaju gotove wheel-ove za ovu verziju.\n\n"
-            "Preporučena verzija: Python 3.11 ili 3.12\n"
-            "Preuzmi na: python.org/downloads\n\n"
-            "Možeš nastaviti, ali instalacija može biti spora ili neuspešna."
+            f"Warning: Python {sys.version_info.major}.{sys.version_info.minor} "
+            f"is too new — packages like PyMuPDF do not have prebuilt wheels for this version.\n\n"
+            "Recommended version: Python 3.11 or 3.12\n"
+            "Download at: python.org/downloads\n\n"
+            "You can continue, but installation may be slow or fail."
         )
 
     if not _bootstrap():
-        _show_error("pywebview nije mogao da se instalira.\n\nPokusaj rucno:\n  pip install pywebview")
+        _show_error("pywebview could not be installed.\n\nTry manually:\n  pip install pywebview")
         sys.exit(1)
 
     import webview
@@ -509,8 +509,8 @@ if __name__ == "__main__":
         _server = _ThreadingHTTPServer(("127.0.0.1", _PORT), _H)
     except OSError:
         _show_error(
-            f"Port {_PORT} je zauzet.\n\n"
-            "Zatvori sve prethodne instance instalatora pa pokusaj ponovo."
+            f"Port {_PORT} is in use.\n\n"
+            "Close all previous installer instances and try again."
         )
         sys.exit(1)
 
@@ -524,7 +524,7 @@ if __name__ == "__main__":
             time.sleep(0.1)
 
     _window = webview.create_window(
-        "PDF Prevodilac — Instalacija",
+        "PDF Translator — Installation",
         f"http://127.0.0.1:{_PORT}",
         width=540, height=700,
         resizable=True,

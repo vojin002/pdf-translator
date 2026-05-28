@@ -149,10 +149,11 @@ def resolve_font(pdf_font_name: str, flags: int) -> str:
 _tl = threading.local()
 
 
-def _get_translator() -> GoogleTranslator:
-    if not hasattr(_tl, "tr"):
-        _tl.tr = GoogleTranslator(source="en", target="sr")
-    return _tl.tr
+def _get_translator(src: str, tgt: str) -> GoogleTranslator:
+    key = f"tr_{src}_{tgt}"
+    if not hasattr(_tl, key):
+        setattr(_tl, key, GoogleTranslator(source=src, target=tgt))
+    return getattr(_tl, key)
 
 
 _api_sem = threading.Semaphore(2)
@@ -234,7 +235,7 @@ _SEP = " ⟦§⟧ "
 _SEP_PAT = re.compile(r"\s*⟦§⟧\s*")
 
 
-def _call(text: str) -> str:
+def _call(text: str, src: str, tgt: str) -> str:
     global _last_call_ts
     with _api_sem:
         with _rate_lock:
@@ -242,7 +243,7 @@ def _call(text: str) -> str:
             if gap > 0:
                 time.sleep(gap)
             _last_call_ts = time.monotonic()
-        tr = _get_translator()
+        tr = _get_translator(src, tgt)
         for attempt in range(3):
             try:
                 r = tr.translate(text)
@@ -260,19 +261,20 @@ def _call(text: str) -> str:
 _SENT_END = re.compile(r'(?<=[.!?])\s+')
 
 
-def translate_single(text: str) -> str:
+def translate_single(text: str, src: str = "en", tgt: str = "sr") -> str:
     if not text.strip():
         return text
     n = _norm(text)
     if not n:
         return text
-    cached = _cache_get(n)
+    ck = f"{src}|{tgt}|{n}"
+    cached = _cache_get(ck)
     if cached is not None:
         return cached
     MAX = 4500
     if len(n) <= MAX:
-        result = _call(n)
-        _cache_set(n, result)
+        result = _call(n, src, tgt)
+        _cache_set(ck, result)
         return result
     sentences = _SENT_END.split(n)
     chunks, cur = [], ""
@@ -285,39 +287,41 @@ def translate_single(text: str) -> str:
             cur = (cur + " " + sent).strip() if cur else sent
     if cur:
         chunks.append(cur)
-    result = " ".join(_call(c) for c in chunks)
-    _cache_set(n, result)
+    result = " ".join(_call(c, src, tgt) for c in chunks)
+    _cache_set(ck, result)
     return result
 
 
-def translate_batch(texts: list) -> list:
+def translate_batch(texts: list, src: str = "en", tgt: str = "sr") -> list:
     if not texts:
         return []
     if len(texts) == 1:
-        return [translate_single(texts[0])]
+        return [translate_single(texts[0], src, tgt)]
     normed = [_norm(t) for t in texts]
-    cached_all = [_cache_get(n) for n in normed]
+    cks = [f"{src}|{tgt}|{n}" for n in normed]
+    cached_all = [_cache_get(ck) for ck in cks]
     if all(r is not None for r in cached_all):
         return cached_all
     joined = _SEP.join(normed)
     if len(joined) > 4500:
         mid = len(texts) // 2
-        return translate_batch(texts[:mid]) + translate_batch(texts[mid:])
-    cached_joined = _cache_get(joined)
+        return translate_batch(texts[:mid], src, tgt) + translate_batch(texts[mid:], src, tgt)
+    joined_ck = f"{src}|{tgt}|{joined}"
+    cached_joined = _cache_get(joined_ck)
     if cached_joined is not None:
         parts = _SEP_PAT.split(cached_joined)
         if len(parts) == len(texts):
             return [p.strip() for p in parts]
-    result = _call(joined)
+    result = _call(joined, src, tgt)
     parts = _SEP_PAT.split(result)
     if len(parts) == len(texts):
-        _cache_set(joined, result)
+        _cache_set(joined_ck, result)
         out = [p.strip() for p in parts]
-        for n, t in zip(normed, out):
-            _cache_set(n, t)
+        for ck, t in zip(cks, out):
+            _cache_set(ck, t)
         return out
     _safe_print(f"    [!] Batch separator changed, translating individually ({len(texts)} blocks)")
-    return [translate_single(n) for n in normed]
+    return [translate_single(n, src, tgt) for n in normed]
 
 
 def unpack_color(color) -> tuple:
@@ -377,6 +381,7 @@ def insert_text_block(page, rect: fitz.Rect, text: str,
 
 
 def translate_pdf(input_path: str, output_path: str = None,
+                  src_lang: str = "en", tgt_lang: str = "sr",
                   progress_callback=None, pause_event=None) -> bool:
     input_path = os.path.abspath(input_path)
     if not os.path.exists(input_path):
@@ -384,7 +389,7 @@ def translate_pdf(input_path: str, output_path: str = None,
         return False
     if output_path is None:
         p = Path(input_path)
-        output_path = str(p.parent / f"{p.stem}_srpski.pdf")
+        output_path = str(p.parent / f"{p.stem}_translated.pdf")
 
     _safe_print("\n" + "=" * 56)
     _safe_print("  PDF TRANSLATOR  -  english -> serbian")
@@ -405,7 +410,7 @@ def translate_pdf(input_path: str, output_path: str = None,
             n = _norm(blk["text"])
             if _should_translate(n) and n not in seen:
                 seen.add(n)
-                if _cache_get(n) is None:
+                if _cache_get(f"{src_lang}|{tgt_lang}|{n}") is None:
                     need_api.append(n)
 
     cached_count = len(seen) - len(need_api)
@@ -418,7 +423,7 @@ def translate_pdf(input_path: str, output_path: str = None,
         if progress_callback:
             progress_callback({"type": "translating", "done": 0, "total": len(need_api), "pages": total})
         with ThreadPoolExecutor(max_workers=2) as pool:
-            futures = {pool.submit(translate_batch, g): len(g) for g in groups}
+            futures = {pool.submit(translate_batch, g, src_lang, tgt_lang): len(g) for g in groups}
             for future in as_completed(futures):
                 future.result()
                 done_count += futures[future]
@@ -442,16 +447,16 @@ def translate_pdf(input_path: str, output_path: str = None,
         if not blocks:
             _safe_print(f"  [{i+1}/{total}] No text")
             if progress_callback:
-                progress_callback({"type": "page_done", "page": i + 1, "total": total, "msg": "Nema teksta"})
+                progress_callback({"type": "page_done", "page": i + 1, "total": total, "msg": "No text"})
             continue
 
         if progress_callback:
-            progress_callback({"type": "progress", "page": i + 1, "total": total, "msg": f"{len(blocks)} blok(ova)"})
+            progress_callback({"type": "progress", "page": i + 1, "total": total, "msg": f"{len(blocks)} block(s)"})
 
         translations = []
         for blk in blocks:
             n = _norm(blk["text"])
-            tr = _cache_get(n) if _should_translate(n) else None
+            tr = _cache_get(f"{src_lang}|{tgt_lang}|{n}") if _should_translate(n) else None
             translations.append(tr if tr is not None else blk["text"])
 
         for blk in blocks:

@@ -36,7 +36,7 @@ def index():
 def upload():
     f = request.files.get("pdf")
     if not f or not f.filename.lower().endswith(".pdf"):
-        return jsonify({"error": "Nije validan PDF fajl"}), 400
+        return jsonify({"error": "Not a valid PDF file"}), 400
     job_id = uuid.uuid4().hex[:10]
     tmp = tempfile.gettempdir()
     input_path = os.path.join(tmp, f"{job_id}_in.pdf")
@@ -48,6 +48,8 @@ def upload():
         "input_path":   input_path,
         "output_path":  output_path,
         "filename":     f.filename,
+        "src_lang":     request.form.get("src_lang", "en"),
+        "tgt_lang":     request.form.get("tgt_lang", "sr"),
         "queue":        queue.Queue(),
         "resume_event": resume_event,
         "done":         False,
@@ -59,7 +61,7 @@ def upload():
 def start_translate(job_id):
     job = JOBS.get(job_id)
     if not job:
-        return jsonify({"error": "Job nije pronadjen"}), 404
+        return jsonify({"error": "Job not found"}), 404
     threading.Thread(target=_run_job, args=(job_id,), daemon=True).start()
     return jsonify({"status": "started"})
 
@@ -75,10 +77,12 @@ def _run_job(job_id: str):
         ok = core.translate_pdf(
             job["input_path"],
             job["output_path"],
+            src_lang=job["src_lang"],
+            tgt_lang=job["tgt_lang"],
             progress_callback=cb,
             pause_event=job["resume_event"],
         )
-        q.put({"type": "done"} if ok else {"type": "error", "msg": "Prevod nije uspeo"})
+        q.put({"type": "done"} if ok else {"type": "error", "msg": "Translation failed"})
     except Exception as e:
         q.put({"type": "error", "msg": str(e)})
     finally:
@@ -89,7 +93,7 @@ def _run_job(job_id: str):
 def pause_job(job_id):
     job = JOBS.get(job_id)
     if not job or job["done"]:
-        return jsonify({"error": "Job nije aktivan"}), 404
+        return jsonify({"error": "Job not active"}), 404
     job["resume_event"].clear()
     return jsonify({"status": "paused"})
 
@@ -98,7 +102,7 @@ def pause_job(job_id):
 def resume_job(job_id):
     job = JOBS.get(job_id)
     if not job:
-        return jsonify({"error": "Job nije pronadjen"}), 404
+        return jsonify({"error": "Job not found"}), 404
     job["resume_event"].set()
     return jsonify({"status": "resumed"})
 
@@ -132,12 +136,12 @@ def stream(job_id):
 def download(job_id):
     job = JOBS.get(job_id)
     if not job or not os.path.exists(job["output_path"]):
-        return "Fajl nije pronadjen", 404
+        return "File not found", 404
     stem = Path(job["filename"]).stem
     return send_file(
         job["output_path"],
         as_attachment=True,
-        download_name=f"{stem}_srpski.pdf",
+        download_name=f"{stem}_translated.pdf",
         mimetype="application/pdf",
     )
 
@@ -219,7 +223,7 @@ if __name__ == "__main__":
             time.sleep(0.2)
 
     webview.create_window(
-        "PDF Prevodilac",
+        "PDF Translator",
         f"http://127.0.0.1:{PORT}",
         width=640,
         height=860,

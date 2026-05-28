@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="sr">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>PDF Prevodilac</title>
+<title>PDF Translator</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
@@ -101,6 +101,16 @@ h1 {
   padding: 3px 10px; border-radius: 20px; font-size: .78rem; font-weight: 600;
   background: rgba(255,255,255,.06); border: 1px solid var(--border2); color: var(--fg);
 }
+.lsel {
+  appearance: none; -webkit-appearance: none;
+  cursor: pointer; outline: none;
+  padding: 3px 28px 3px 10px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%238892aa'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 9px center;
+  transition: border-color .2s, background-color .2s;
+}
+.lsel:hover { border-color: var(--a1); background-color: rgba(129,140,248,.1); }
+.lsel option { background: #0d0d1a; color: var(--fg); }
 .larr { color: var(--a1); font-size: 1rem; font-weight: 700; }
 .lsep { color: var(--dim); }
 .lhint { font-size: .75rem; color: var(--dim); }
@@ -483,40 +493,40 @@ h1 {
     <div class="logo">
       <div class="logo-badge">📄</div>
       <div>
-        <h1>PDF Prevodilac</h1>
-        <div class="logo-sub">Prevod uz očuvanje originalnog izgleda i fontova</div>
+        <h1>PDF Translator</h1>
+        <div class="logo-sub">Translation with preserved original layout and fonts</div>
       </div>
     </div>
     <div class="lang-row">
-      <span class="lpill">Engleski</span>
+      <select id="src-lang" class="lpill lsel"></select>
       <span class="larr">→</span>
-      <span class="lpill">Srpski</span>
+      <select id="tgt-lang" class="lpill lsel"></select>
       <span class="lsep">·</span>
-      <span class="lhint">Google Translate · Besplatno · Lokalno</span>
+      <span class="lhint">Google Translate · Free · Local</span>
     </div>
   </div>
 
   <div class="steps">
     <div class="step active" id="step-1">
       <div class="step-num">1</div>
-      <div class="step-lbl">Odaberi PDF</div>
+      <div class="step-lbl">Select PDF</div>
     </div>
     <div class="step-line" id="line-1"></div>
     <div class="step" id="step-2">
       <div class="step-num">2</div>
-      <div class="step-lbl">Prevedi</div>
+      <div class="step-lbl">Translate</div>
     </div>
     <div class="step-line" id="line-2"></div>
     <div class="step" id="step-3">
       <div class="step-num">3</div>
-      <div class="step-lbl">Preuzmi</div>
+      <div class="step-lbl">Download</div>
     </div>
   </div>
 
   <div id="dropzone">
     <div class="dz-icon-wrap"><div class="dz-icon">📂</div></div>
-    <div class="dz-t1">Prevuci PDF ovde ili klikni za odabir</div>
-    <div class="dz-t2">Podržani format: PDF &nbsp;·&nbsp; Max 100 MB</div>
+    <div class="dz-t1">Drag PDF here or click to select</div>
+    <div class="dz-t2">Supported format: PDF &nbsp;·&nbsp; Max 100 MB</div>
   </div>
 
   <div id="file-info">
@@ -525,22 +535,22 @@ h1 {
       <div class="fi-name" id="fi-name">—</div>
       <div class="fi-size" id="fi-size">—</div>
     </div>
-    <button class="fi-del" id="fi-del" title="Ukloni fajl">✕</button>
+    <button class="fi-del" id="fi-del" title="Remove file">✕</button>
   </div>
 
   <div class="gap"></div>
 
   <button class="btn-primary" id="btn-translate" disabled>
     <span id="btn-icon">✦</span>
-    <span id="btn-label">Prevedi PDF</span>
+    <span id="btn-label">Translate PDF</span>
   </button>
 
   <div id="prog-section">
     <div class="gap"></div>
     <div class="prog-top">
-      <div class="prog-status" id="prog-text">Prevodim...</div>
+      <div class="prog-status" id="prog-text">Translating...</div>
       <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
-        <button id="btn-pause" title="Pauziraj / Nastavi">⏸</button>
+        <button id="btn-pause" title="Pause / Resume">⏸</button>
         <span id="prog-badge">–</span>
       </div>
     </div>
@@ -548,30 +558,30 @@ h1 {
       <div id="prog-fill"></div>
     </div>
     <div id="prog-meta" style="display:none">
-      <div class="eta-row">⏳ <span>Preostalo:</span> <span class="eta-val" id="eta-val">računam...</span></div>
-      <div class="elapsed-val">Proteklo: <span id="elapsed-val">0 s</span></div>
+      <div class="eta-row">⏳ <span>Remaining:</span> <span class="eta-val" id="eta-val">calculating...</span></div>
+      <div class="elapsed-val">Elapsed: <span id="elapsed-val">0 s</span></div>
     </div>
     <div id="page-dots"></div>
     <div id="paused-banner">
       <div class="pause-dot"></div>
-      Pauzirano — klikni ▶ da nastaviš
+      Paused — click ▶ to resume
     </div>
   </div>
 
   <div id="log-wrap">
     <div class="gap-sm"></div>
     <div class="log-hdr" onclick="toggleLog()" id="log-hdr">
-      <span class="log-title">Log izvršavanja</span>
+      <span class="log-title">Execution log</span>
       <span class="log-count" id="log-count">0</span>
       <span class="log-chevron" id="log-chev">▾</span>
     </div>
     <div id="log-body">
       <div id="log">
         <div class="log-thead">
-          <span class="log-col-ts">Vreme</span>
+          <span class="log-col-ts">Time</span>
           <span class="log-col-ic"></span>
-          <span class="log-col-pg">Str.</span>
-          <span class="log-col-msg">Poruka</span>
+          <span class="log-col-pg">Pg.</span>
+          <span class="log-col-msg">Message</span>
         </div>
       </div>
     </div>
@@ -580,13 +590,13 @@ h1 {
   <div class="gap-sm"></div>
   <a class="btn-download" id="btn-download" href="#">
     <span>⬇</span>
-    <span>Preuzmi prevedeni PDF</span>
+    <span>Download translated PDF</span>
   </a>
 
   <div class="card-ft">
-    <span>Fontovi sačuvani</span><div class="ft-dot"></div>
-    <span>Slike netaknute</span><div class="ft-dot"></div>
-    <span>Prevod ostaje lokalno</span>
+    <span>Fonts preserved</span><div class="ft-dot"></div>
+    <span>Images untouched</span><div class="ft-dot"></div>
+    <span>Translation stays local</span>
   </div>
 
 </main>
@@ -594,6 +604,34 @@ h1 {
 <input type="file" id="file-input" accept=".pdf" style="display:none">
 
 <script>
+const LANGS = [
+  ['af','Afrikaans'],['sq','Albanian'],['ar','Arabic'],['az','Azerbaijani'],
+  ['be','Belarusian'],['bs','Bosnian'],['bg','Bulgarian'],['zh-CN','Chinese'],
+  ['hr','Croatian'],['cs','Czech'],['da','Danish'],['nl','Dutch'],
+  ['en','English'],['et','Estonian'],['fi','Finnish'],['fr','French'],
+  ['gl','Galician'],['de','German'],['el','Greek'],['he','Hebrew'],
+  ['hi','Hindi'],['hu','Hungarian'],['is','Icelandic'],['id','Indonesian'],
+  ['it','Italian'],['ja','Japanese'],['ka','Georgian'],['kk','Kazakh'],
+  ['ko','Korean'],['lv','Latvian'],['lt','Lithuanian'],['mk','Macedonian'],
+  ['ms','Malay'],['mt','Maltese'],['no','Norwegian'],['fa','Persian'],
+  ['pl','Polish'],['pt','Portuguese'],['ro','Romanian'],['ru','Russian'],
+  ['sk','Slovak'],['sl','Slovenian'],['es','Spanish'],['sr','Serbian'],
+  ['sw','Swahili'],['sv','Swedish'],['tl','Tagalog'],['th','Thai'],
+  ['tr','Turkish'],['uk','Ukrainian'],['ur','Urdu'],['vi','Vietnamese'],
+];
+
+function buildLangSelect(id, defaultCode) {
+  const sel = document.getElementById(id);
+  LANGS.forEach(([code, name]) => {
+    const o = document.createElement('option');
+    o.value = code; o.textContent = name;
+    if (code === defaultCode) o.selected = true;
+    sel.appendChild(o);
+  });
+}
+buildLangSelect('src-lang', 'en');
+buildLangSelect('tgt-lang', 'sr');
+
 const dz         = document.getElementById('dropzone');
 const fileInput  = document.getElementById('file-input');
 const fileInfo   = document.getElementById('file-info');
@@ -643,7 +681,7 @@ dz.addEventListener('drop', e => { e.preventDefault(); const f = e.dataTransfer.
 fileInput.addEventListener('change', () => { if (fileInput.files[0]) setFile(fileInput.files[0]); });
 
 function setFile(f) {
-  if (!f.name.toLowerCase().endsWith('.pdf')) { addLog('Fajl nije PDF.','err'); return; }
+  if (!f.name.toLowerCase().endsWith('.pdf')) { addLog('File is not a PDF.','err'); return; }
   selectedFile = f;
   fiName.textContent = f.name;
   fiSize.textContent = fmtSize(f.size);
@@ -758,7 +796,7 @@ function updateDots(page, total) {
 
 function fmtDur(s) {
   s = Math.max(0, Math.round(s));
-  if (s < 5)   return 'manje od 5 s';
+  if (s < 5)   return 'less than 5 s';
   if (s < 60)  return s + ' s';
   const m = Math.floor(s/60), r = s%60;
   if (m < 60)  return r ? `${m} min ${r} s` : `${m} min`;
@@ -767,7 +805,7 @@ function fmtDur(s) {
 function startTimer() {
   tStart = Date.now(); tPagesStart = null; pDone = 0; pTotal = 0;
   progMeta.style.display = '';
-  etaVal.textContent = 'računam...';
+  etaVal.textContent = 'calculating...';
   elapsedVal.textContent = '0 s';
   elapsedTimer = setInterval(() => {
     if (tStart) elapsedVal.textContent = fmtDur((Date.now()-tStart)/1000);
@@ -775,12 +813,12 @@ function startTimer() {
 }
 function stopTimer() {
   clearInterval(elapsedTimer); elapsedTimer = null;
-  etaVal.textContent = 'gotovo';
+  etaVal.textContent = 'done';
 }
 function updateEta() {
   if (!tPagesStart || pDone === 0 || pTotal === 0) return;
   const avg = (Date.now() - tPagesStart) / 1000 / pDone;
-  etaVal.textContent = pDone >= pTotal ? 'gotovo' : '~' + fmtDur(avg * (pTotal - pDone));
+  etaVal.textContent = pDone >= pTotal ? 'done' : '~' + fmtDur(avg * (pTotal - pDone));
 }
 
 btnPause.addEventListener('click', async () => {
@@ -793,7 +831,7 @@ btnPause.addEventListener('click', async () => {
     btnPause.textContent = '⏸'; btnPause.className = '';
     pausedBnr.classList.remove('show');
     progFill.classList.remove('paused');
-    progText.innerHTML = 'Prevodim...';
+    progText.innerHTML = 'Translating...';
     tStart += Date.now() - pausedAt;
     await fetch('/resume/' + currentJobId, {method:'POST'});
   }
@@ -826,7 +864,7 @@ btnT.addEventListener('click', async () => {
 
   btnT.disabled = true;
   btnIcon.innerHTML = '<span class="spin">⟳</span>';
-  btnLabel.textContent = 'Prevodim...';
+  btnLabel.textContent = 'Translating...';
   btnDl.classList.remove('show');
   progSec.classList.add('show');
   logWrap.classList.add('show');
@@ -843,19 +881,22 @@ btnT.addEventListener('click', async () => {
   currentJobId = null; isPaused = false;
   setStep(2);
 
-  addLog('Šaljem fajl...', 'dim');
-  const fd = new FormData(); fd.append('pdf', selectedFile);
+  addLog('Sending file...', 'dim');
+  const fd = new FormData();
+  fd.append('pdf', selectedFile);
+  fd.append('src_lang', document.getElementById('src-lang').value);
+  fd.append('tgt_lang', document.getElementById('tgt-lang').value);
   let jobId;
   try {
     const r = await fetch('/upload', {method:'POST', body:fd});
     const d = await r.json();
     if (d.error) throw new Error(d.error);
     jobId = d.job_id;
-    addLog('Fajl primljen (' + jobId + ')', 'dim');
-  } catch(e) { addLog('Greška: ' + e.message, 'err'); resetBtn(); return; }
+    addLog('File received (' + jobId + ')', 'dim');
+  } catch(e) { addLog('Error: ' + e.message, 'err'); resetBtn(); return; }
 
   currentJobId = jobId;
-  addLog('Pokrećem prevod...', 'dim');
+  addLog('Starting translation...', 'dim');
   await fetch('/translate/' + jobId);
   startTimer();
 
@@ -871,21 +912,21 @@ btnT.addEventListener('click', async () => {
         progBadge.textContent = `0 / ${pTotal}`;
       }
       if (msg.total === 0) {
-        progText.innerHTML = 'Primenjujem iz kesa...';
-        addLog('Svi blokovi pronadjeni u kesu', 'ok');
+        progText.innerHTML = 'Applying from cache...';
+        addLog('All blocks found in cache', 'ok');
         return;
       }
       hadTranslatingPhase = true;
       const pct = Math.round(msg.done / msg.total * 50);
       progFill.style.width = pct + '%';
       if (msg.done === 0) {
-        progText.innerHTML = `Prevodim <strong>${msg.total}</strong> blokova...`;
-        addLog(`${msg.total} blokova za prevod (${msg.pages} stranica)`, 'dim');
+        progText.innerHTML = `Translating <strong>${msg.total}</strong> blocks...`;
+        addLog(`${msg.total} blocks to translate (${msg.pages} pages)`, 'dim');
       } else {
-        progText.innerHTML = `Prevodim blokove: <strong>${msg.done} / ${msg.total}</strong>`;
+        progText.innerHTML = `Translating blocks: <strong>${msg.done} / ${msg.total}</strong>`;
         if (msg.done === msg.total) {
-          addLog(`Prevod zavrsen — primenjujem na stranice...`, 'ok');
-          etaVal.textContent = 'računam...';
+          addLog(`Translation done — applying to pages...`, 'ok');
+          etaVal.textContent = 'calculating...';
         } else if (tStart && msg.done > 0) {
           const elapsed = (Date.now() - tStart) / 1000;
           const rate = elapsed / msg.done;
@@ -901,7 +942,7 @@ btnT.addEventListener('click', async () => {
       const pct  = base + Math.round((msg.page - 1) / pTotal * (100 - base));
       progFill.style.width = pct + '%';
       progBadge.textContent = `${msg.page} / ${pTotal}`;
-      progText.innerHTML = `Upisujem <strong>stranicu ${msg.page}</strong>...`;
+      progText.innerHTML = `Writing <strong>page ${msg.page}</strong>...`;
       updateDots(msg.page, pTotal);
       addLog(`[${msg.page}/${pTotal}] ${msg.msg||''}`, 'dim');
     }
@@ -914,7 +955,7 @@ btnT.addEventListener('click', async () => {
       progFill.style.width = pct + '%';
       updateDots(msg.page + 1, pTotal);
       updateEta();
-      addLog(`[${pDone}/${pTotal}] Stranica upisana`, 'ok');
+      addLog(`[${pDone}/${pTotal}] Page written`, 'ok');
     }
 
     if (msg.type === 'paused') {
@@ -922,8 +963,8 @@ btnT.addEventListener('click', async () => {
       btnPause.textContent = '▶'; btnPause.className = 'paused'; btnPause.disabled = false;
       pausedBnr.classList.add('show');
       progFill.classList.add('paused');
-      progText.innerHTML = '<strong>Pauzirano</strong>';
-      addLog(`[⏸] Pauzirano pre stranice ${msg.page}`, 'warn');
+      progText.innerHTML = '<strong>Paused</strong>';
+      addLog(`[⏸] Paused before page ${msg.page}`, 'warn');
     }
 
     if (msg.type === 'resumed') {
@@ -931,8 +972,8 @@ btnT.addEventListener('click', async () => {
       btnPause.textContent = '⏸'; btnPause.className = '';
       pausedBnr.classList.remove('show');
       progFill.classList.remove('paused');
-      progText.innerHTML = `Nastavljam od <strong>stranice ${msg.page}</strong>...`;
-      addLog(`[▶] Nastavljeno — stranica ${msg.page}`, 'ok');
+      progText.innerHTML = `Resuming from <strong>page ${msg.page}</strong>...`;
+      addLog(`[▶] Resumed — page ${msg.page}`, 'ok');
     }
 
     if (msg.type === 'done') {
@@ -941,12 +982,12 @@ btnT.addEventListener('click', async () => {
       pausedBnr.classList.remove('show');
       progFill.style.width = '100%';
       progFill.classList.add('done'); progFill.classList.remove('paused');
-      progText.innerHTML = '<strong>Prevod završen!</strong>';
-      progBadge.textContent = '✓ Gotovo'; progBadge.className = 'done-badge';
+      progText.innerHTML = '<strong>Translation complete!</strong>';
+      progBadge.textContent = '✓ Done'; progBadge.className = 'done-badge';
       if (pTotal > 0 && pTotal <= 24) updateDots(pTotal+1, pTotal);
-      addLog('Prevod uspesno zavrsen!', 'ok');
+      addLog('Translation completed successfully!', 'ok');
       btnDl.dataset.jobId = jobId;
-      btnDl.dataset.fname = selectedFile.name.replace(/\.pdf$/i, '') + '_srpski.pdf';
+      btnDl.dataset.fname = selectedFile.name.replace(/\.pdf$/i, '') + '_translated.pdf';
       btnDl.classList.add('show');
       setStep(3);
       confetti();
@@ -955,37 +996,37 @@ btnT.addEventListener('click', async () => {
 
     if (msg.type === 'error') {
       sse.close(); stopTimer();
-      progText.innerHTML = '<strong>Greška!</strong>';
-      progBadge.textContent = '✗ Greška'; progBadge.className = 'err-badge';
-      addLog('GREŠKA: ' + (msg.msg||'Nepoznata'), 'err');
+      progText.innerHTML = '<strong>Error!</strong>';
+      progBadge.textContent = '✗ Error'; progBadge.className = 'err-badge';
+      addLog('ERROR: ' + (msg.msg||'Unknown'), 'err');
       resetBtn();
     }
   };
 
-  sse.onerror = () => { addLog('Veza prekinuta', 'err'); sse.close(); stopTimer(); resetBtn(); };
+  sse.onerror = () => { addLog('Connection lost', 'err'); sse.close(); stopTimer(); resetBtn(); };
 });
 
 btnDl.addEventListener('click', async function(e) {
   e.preventDefault();
   const jid = this.dataset.jobId;
-  const fname = this.dataset.fname || 'prevod_srpski.pdf';
+  const fname = this.dataset.fname || 'translation.pdf';
   if (!jid) return;
   const orig = this.innerHTML;
-  this.innerHTML = '<span class="spin">⟳</span><span>Preuzimam...</span>';
+  this.innerHTML = '<span class="spin">⟳</span><span>Downloading...</span>';
   try {
     const r = await fetch('/download/' + jid);
-    if (!r.ok) { addLog('Greška pri preuzimanju', 'err'); this.innerHTML = orig; return; }
+    if (!r.ok) { addLog('Error downloading file', 'err'); this.innerHTML = orig; return; }
     const blob = await r.blob();
     if (window.showSaveFilePicker) {
       try {
         const handle = await window.showSaveFilePicker({
           suggestedName: fname,
-          types: [{ description: 'PDF dokument', accept: { 'application/pdf': ['.pdf'] } }]
+          types: [{ description: 'PDF document', accept: { 'application/pdf': ['.pdf'] } }]
         });
         const writable = await handle.createWritable();
         await writable.write(blob);
         await writable.close();
-        addLog('PDF sacuvan!', 'ok');
+        addLog('PDF saved!', 'ok');
         this.innerHTML = orig;
         return;
       } catch(err) {
@@ -997,15 +1038,15 @@ btnDl.addEventListener('click', async function(e) {
     a.href = url; a.download = fname;
     document.body.appendChild(a); a.click(); document.body.removeChild(a);
     setTimeout(() => URL.revokeObjectURL(url), 2000);
-    addLog('PDF sacuvan!', 'ok');
-  } catch(err) { addLog('Greška: ' + err.message, 'err'); }
+    addLog('PDF saved!', 'ok');
+  } catch(err) { addLog('Error: ' + err.message, 'err'); }
   this.innerHTML = orig;
 });
 
 function resetBtn() {
   isRunning = false; isPaused = false; currentJobId = null;
   btnT.disabled = false;
-  btnIcon.textContent = '✦'; btnLabel.textContent = 'Prevedi PDF';
+  btnIcon.textContent = '✦'; btnLabel.textContent = 'Translate PDF';
   btnPause.style.display = ''; btnPause.disabled = false;
   btnPause.textContent = '⏸'; btnPause.className = '';
 }
