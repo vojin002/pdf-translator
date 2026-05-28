@@ -45,14 +45,14 @@ def upload():
     resume_event = threading.Event()
     resume_event.set()
     JOBS[job_id] = {
-        "input_path":   input_path,
-        "output_path":  output_path,
-        "filename":     f.filename,
-        "src_lang":     request.form.get("src_lang", "en"),
-        "tgt_lang":     request.form.get("tgt_lang", "sr"),
-        "queue":        queue.Queue(),
+        "input_path": input_path,
+        "output_path": output_path,
+        "filename": f.filename,
+        "src_lang": request.form.get("src_lang", "en"),
+        "tgt_lang": request.form.get("tgt_lang", "sr"),
+        "queue": queue.Queue(),
         "resume_event": resume_event,
-        "done":         False,
+        "done": False,
     }
     return jsonify({"job_id": job_id})
 

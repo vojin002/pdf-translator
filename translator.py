@@ -39,6 +39,7 @@ try:
                   else {"images": 0})
 except Exception:
     _redact_kw = {"images": 0}
+del _inspect
 
 
 _FONT_ENTRIES = [
@@ -107,6 +108,7 @@ for _family, _bold, _italic, _filename in _FONT_ENTRIES:
     _path = os.path.join(_FONTS_DIR, _filename)
     if os.path.exists(_path):
         _FAMILY_INDEX.setdefault(_family, []).append((_bold, _italic, _path))
+del _FONT_ENTRIES, _family, _bold, _italic, _filename, _path
 
 _DEFAULT_FONT: str = ""
 for _fp in [r"C:\Windows\Fonts\calibri.ttf", r"C:\Windows\Fonts\arial.ttf",

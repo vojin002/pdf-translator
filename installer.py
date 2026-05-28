@@ -6,10 +6,6 @@ from socketserver import ThreadingMixIn, TCPServer
 class _ThreadingHTTPServer(ThreadingMixIn, TCPServer):
     daemon_threads = True
     allow_reuse_address = True
-    def server_bind(self):
-        import socket
-        self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        TCPServer.server_bind(self)
 
 _dir = Path(__file__).parent
 _PORT = 15173
