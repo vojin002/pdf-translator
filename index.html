@@ -751,8 +751,7 @@ h1 {
   </div>
 
   <div class="shortcuts">
-    <div class="sc-item"><span class="sc-key">Ctrl+O</span><span class="sc-lbl">Add PDF</span></div>
-    <div class="sc-item"><span class="sc-key">Ctrl+↵</span><span class="sc-lbl">Translate</span></div>
+<div class="sc-item"><span class="sc-key">Ctrl+↵</span><span class="sc-lbl">Translate</span></div>
     <div class="sc-item"><span class="sc-key">Space</span><span class="sc-lbl">Pause/Resume</span></div>
     <div class="sc-item"><span class="sc-key">Esc</span><span class="sc-lbl">Cancel</span></div>
   </div>
@@ -1150,10 +1149,7 @@ document.addEventListener('keydown', e => {
   const tag = document.activeElement.tagName;
   const inInput = tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA';
 
-  if (e.ctrlKey && e.key === 'o') {
-    e.preventDefault(); fileInput.click();
-  }
-  if (e.ctrlKey && (e.key === 'Enter' || e.key === '\n')) {
+if (e.ctrlKey && (e.key === 'Enter' || e.key === '\n')) {
     e.preventDefault(); if (!btnT.disabled) btnT.click();
   }
   if (e.key === ' ' && !inInput && !e.ctrlKey && !e.altKey) {
