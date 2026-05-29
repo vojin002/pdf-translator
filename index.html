@@ -567,10 +567,37 @@ h1 {
 
 .card-ft {
   display: flex; align-items: center; justify-content: center;
-  flex-wrap: wrap; gap: 6px; margin-top: 20px;
+  flex-wrap: wrap; gap: 6px; margin-top: 16px;
   font-size: .69rem; color: var(--dim);
 }
 .ft-dot { width: 2px; height: 2px; border-radius: 50%; background: var(--dim); }
+
+.shortcuts {
+  display: flex; align-items: center; justify-content: center;
+  flex-wrap: wrap; gap: 10px; margin-top: 10px;
+  padding: 7px 12px; border-radius: 10px;
+  background: rgba(255,255,255,.03); border: 1px solid rgba(255,255,255,.05);
+}
+.sc-item { display: flex; align-items: center; gap: 5px; }
+.sc-key {
+  font-size: .62rem; font-weight: 700; font-family: 'Cascadia Code','Consolas',monospace;
+  background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.12);
+  border-bottom: 2px solid rgba(255,255,255,.18);
+  color: var(--sub); padding: 1px 5px; border-radius: 4px;
+  white-space: nowrap;
+}
+.sc-lbl { font-size: .67rem; color: var(--dim); }
+
+#btn-download-txt {
+  display: none; align-items: center; justify-content: center; gap: 7px;
+  margin: 6px auto 0; padding: 7px 18px;
+  background: rgba(129,140,248,.06); border: 1px solid rgba(129,140,248,.2);
+  border-radius: 10px; color: var(--a1);
+  font-family: inherit; font-size: .8rem; font-weight: 600;
+  cursor: pointer; transition: background .2s, transform .15s;
+}
+#btn-download-txt.show { display: flex; animation: popIn .35s cubic-bezier(.34,1.56,.64,1); }
+#btn-download-txt:hover { background: rgba(129,140,248,.12); transform: translateY(-1px); }
 
 #confetti-box {
   position: fixed; inset: 0; pointer-events: none; z-index: 999; overflow: hidden;
@@ -715,10 +742,19 @@ h1 {
     <span id="btn-zip-label">Download all as ZIP</span>
   </button>
 
+  <button id="btn-download-txt"><span>⬇</span><span>Download as .txt</span></button>
+
   <div class="card-ft">
     <span>Fonts preserved</span><div class="ft-dot"></div>
     <span>Images untouched</span><div class="ft-dot"></div>
     <span>Translation stays local</span>
+  </div>
+
+  <div class="shortcuts">
+    <div class="sc-item"><span class="sc-key">Ctrl+O</span><span class="sc-lbl">Open</span></div>
+    <div class="sc-item"><span class="sc-key">Ctrl+↵</span><span class="sc-lbl">Translate</span></div>
+    <div class="sc-item"><span class="sc-key">Space</span><span class="sc-lbl">Pause/Resume</span></div>
+    <div class="sc-item"><span class="sc-key">Esc</span><span class="sc-lbl">Cancel</span></div>
   </div>
 
 </main>
@@ -799,6 +835,7 @@ const logChev   = document.getElementById('log-chev');
 const logEl     = document.getElementById('log');
 const btnDl     = document.getElementById('btn-download');
 const btnZip    = document.getElementById('btn-download-zip');
+const btnTxt    = document.getElementById('btn-download-txt');
 const btnPause  = document.getElementById('btn-pause');
 const btnCancel = document.getElementById('btn-cancel');
 
@@ -1108,6 +1145,29 @@ function confetti() {
   }
 }
 
+// --- Keyboard shortcuts ---
+document.addEventListener('keydown', e => {
+  const tag = document.activeElement.tagName;
+  const inInput = tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA';
+
+  if (e.ctrlKey && e.key === 'o') {
+    e.preventDefault(); fileInput.click();
+  }
+  if (e.ctrlKey && (e.key === 'Enter' || e.key === '\n')) {
+    e.preventDefault(); if (!btnT.disabled) btnT.click();
+  }
+  if (e.key === ' ' && !inInput && !e.ctrlKey && !e.altKey) {
+    if (isRunning && currentJobId && btnPause.style.display !== 'none') {
+      e.preventDefault(); btnPause.click();
+    }
+  }
+  if (e.key === 'Escape') {
+    if (isRunning && currentJobId && !btnCancel.disabled && btnCancel.style.display !== 'none') {
+      btnCancel.click();
+    }
+  }
+});
+
 // --- Download ---
 async function downloadFile(jobId, fname) {
   const r = await fetch('/download/' + jobId);
@@ -1134,6 +1194,26 @@ async function downloadFile(jobId, fname) {
   document.body.appendChild(a); a.click(); document.body.removeChild(a);
   setTimeout(() => URL.revokeObjectURL(url), 2000);
   addLog('Saved: ' + fname, 'ok');
+}
+
+async function downloadTxt(jobId, origName) {
+  const stem = origName.replace(/\.pdf$/i, '');
+  const fname = stem + '_translated.txt';
+  const orig = btnTxt.innerHTML;
+  btnTxt.innerHTML = '<span class="spin">⟳</span><span>Downloading...</span>';
+  btnTxt.disabled = true;
+  try {
+    const r = await fetch('/download-txt/' + jobId);
+    if (!r.ok) { addLog('Error downloading .txt', 'err'); return; }
+    const blob = await r.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = fname;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+    addLog('Saved: ' + fname, 'ok');
+  } catch(e) { addLog('TXT error: ' + e.message, 'err'); }
+  btnTxt.innerHTML = orig; btnTxt.disabled = false;
 }
 
 function downloadQueueItem(idx) {
@@ -1365,6 +1445,8 @@ function translateOne(idx) {
           btnDl.dataset.jobId = jobId;
           btnDl.dataset.fname = item.jobFname;
           btnDl.classList.add('show');
+          btnTxt.onclick = () => downloadTxt(jobId, item.file.name);
+          btnTxt.classList.add('show');
           if ('Notification' in window && Notification.permission === 'granted' && document.hidden) {
             new Notification('PDF Translator', { body: 'Translation complete! Ready to download.' });
           }
@@ -1424,6 +1506,7 @@ function resetFull() {
   progSec.classList.remove('show');
   logWrap.classList.remove('show');
   btnDl.classList.remove('show');
+  btnTxt.classList.remove('show');
   btnZip.classList.remove('show'); btnZip.disabled = false;
   btnT.disabled = true;
   btnIcon.textContent = '✦'; btnLabel.textContent = 'Translate PDF';

@@ -248,6 +248,28 @@ def download_zip():
                      mimetype="application/zip")
 
 
+@app.route("/download-txt/<job_id>")
+def download_txt(job_id):
+    with JOBS_LOCK:
+        job = JOBS.get(job_id)
+    if not job or not os.path.exists(job["output_path"]):
+        return "File not found", 404
+    try:
+        import fitz
+        doc = fitz.open(job["output_path"])
+        pages = [page.get_text().strip() for page in doc]
+        doc.close()
+        text = "\n\n".join(p for p in pages if p)
+    except Exception as e:
+        return f"Error: {e}", 500
+    stem = Path(job["filename"]).stem
+    buf = io.BytesIO(text.encode("utf-8"))
+    buf.seek(0)
+    return send_file(buf, as_attachment=True,
+                     download_name=f"{stem}_translated.txt",
+                     mimetype="text/plain; charset=utf-8")
+
+
 @app.route("/download/<job_id>")
 def download(job_id):
     with JOBS_LOCK:
