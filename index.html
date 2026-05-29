@@ -1130,23 +1130,22 @@ btnT.addEventListener('click', () => {
 });
 
 async function processQueue() {
+  let cancelled = false;
   for (let i = 0; i < fileQueue.length; i++) {
     if (fileQueue[i].status !== 'waiting') continue;
     queueIdx = i;
     const doneNormally = await translateOne(i);
-    if (!doneNormally) break; // cancelled
+    if (!doneNormally) { cancelled = true; break; }
   }
   const donItems = fileQueue.filter(x => x.status === 'done');
-  const allDone  = fileQueue.every(x => x.status === 'done');
   if (donItems.length > 0) {
     setStep(3);
-    confetti();
-    if (donItems.length > 1) {
-      const count = donItems.length;
-      document.getElementById('btn-zip-label').textContent = `Download all ${count} files as ZIP`;
+    if (!cancelled) confetti();
+    if (!cancelled && donItems.length > 1) {
+      document.getElementById('btn-zip-label').textContent = `Download all ${donItems.length} files as ZIP`;
       btnZip.classList.add('show');
     }
-    if ('Notification' in window && Notification.permission === 'granted' && document.hidden) {
+    if (!cancelled && 'Notification' in window && Notification.permission === 'granted' && document.hidden) {
       new Notification('PDF Translator', {
         body: donItems.length > 1 ? `All ${donItems.length} files translated!` : 'Translation complete!'
       });

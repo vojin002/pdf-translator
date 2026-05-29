@@ -595,7 +595,7 @@ def translate_pdf(input_path: str, output_path: str = None,
             if progress_callback:
                 progress_callback({"type": "page_done", "page": i + 1, "total": total})
 
-        _save_cache()
+        threading.Thread(target=_save_cache, daemon=True).start()
         _safe_print("\n  Saving PDF...")
         doc.save(output_path, garbage=4, deflate=True)
     finally:
