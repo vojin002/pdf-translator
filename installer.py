@@ -34,12 +34,8 @@ _ANSI = re.compile(r"\x1b\[[0-9;]*[mGKH]")
 
 
 def _webview_ok() -> bool:
-    try:
-        import importlib
-        importlib.import_module("webview")
-        return True
-    except ImportError:
-        return False
+    import importlib.util
+    return importlib.util.find_spec("webview") is not None
 
 
 def _linux_backend_ok() -> bool:

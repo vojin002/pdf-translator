@@ -1,4 +1,4 @@
-import os, sys, runpy, platform
+import os, sys, runpy, platform, importlib.util
 from pathlib import Path
 
 _dir = Path(__file__).parent
@@ -7,12 +7,10 @@ sys.path.insert(0, str(_dir))
 
 
 def _deps_ok():
-    for pkg in ("fitz", "flask", "deep_translator", "webview"):
-        try:
-            __import__(pkg)
-        except ImportError:
-            return False
-    return True
+    return all(
+        importlib.util.find_spec(pkg) is not None
+        for pkg in ("fitz", "flask", "deep_translator", "webview")
+    )
 
 
 def _linux_backend_ok() -> bool:
