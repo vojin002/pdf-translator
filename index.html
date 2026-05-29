@@ -1286,7 +1286,7 @@ function translateOne(idx) {
     setQueueItemStatus(idx, 'running');
     const qTotal = fileQueue.filter(x => x.status !== 'waiting' || x === item).length;
     const qDone  = fileQueue.filter(x => x.status === 'done').length;
-    addLog(`─── File ${qDone + 1} / ${fileQueue.filter(x=>x.status!=='waiting'||x===item).length + fileQueue.filter(x=>x.status==='done').length}: ${item.file.name}`, 'dim');
+    addLog(`─── File ${qDone + 1} / ${fileQueue.length}: ${item.file.name}`, 'dim');
 
     // reset progress UI
     progFill.style.width = '0%';
@@ -1306,6 +1306,12 @@ function translateOne(idx) {
     fd.append('tgt_lang', tgtLang);
     const pgFrom = parseInt(document.getElementById('pg-from').value) || 0;
     const pgTo   = parseInt(document.getElementById('pg-to').value)   || 0;
+    if (pgFrom > 0 && pgTo > 0 && pgFrom > pgTo) {
+      addLog(`Page range error: "from" (${pgFrom}) must be ≤ "to" (${pgTo})`, 'err');
+      setQueueItemStatus(idx, 'error');
+      resolve(true);
+      return;
+    }
     if (pgFrom > 0) fd.append('page_from', pgFrom);
     if (pgTo   > 0) fd.append('page_to',   pgTo);
     let jobId;

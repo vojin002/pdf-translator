@@ -500,6 +500,8 @@ def translate_pdf(input_path: str, output_path: str = None,
         total = len(doc)
         p_start = max(1, page_from or 1) - 1          # 0-indexed
         p_end   = min(total, page_to or total) - 1    # 0-indexed inclusive
+        if p_start > p_end:
+            p_start, p_end = p_end, p_start
         active  = set(range(p_start, p_end + 1))
         _safe_print(f"  Pages  : {total}  (translating {p_start+1}–{p_end+1})")
 
