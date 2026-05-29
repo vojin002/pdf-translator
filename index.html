@@ -243,11 +243,17 @@ h1 {
 .q-st-err  { background: rgba(251,113,133,.12); color: var(--err); border: 1px solid rgba(251,113,133,.25); }
 
 .q-dl {
-  background: none; border: 1px solid rgba(52,211,153,.3); border-radius: 8px;
-  color: var(--ok); cursor: pointer; font-size: .75rem; padding: 3px 8px;
-  line-height: 1; transition: all .2s; flex-shrink: 0; display: none;
+  background: rgba(52,211,153,.13); border: 1px solid rgba(52,211,153,.4);
+  border-radius: 9px; color: var(--ok); cursor: pointer;
+  font-size: .75rem; font-weight: 700; font-family: inherit;
+  padding: 6px 12px; line-height: 1; transition: all .2s;
+  flex-shrink: 0; display: none; white-space: nowrap;
+  box-shadow: 0 0 8px rgba(52,211,153,.12);
 }
-.q-dl:hover { background: rgba(52,211,153,.1); }
+.q-dl:hover {
+  background: rgba(52,211,153,.22); border-color: rgba(52,211,153,.6);
+  transform: translateY(-1px); box-shadow: 0 4px 12px rgba(52,211,153,.2);
+}
 .q-dl.show { display: block; }
 
 .fi-del {
@@ -788,15 +794,20 @@ function renderQueue() {
     meta.className = 'fi-meta';
     meta.innerHTML = `<div class="fi-name" title="${item.file.name}">${item.file.name}</div><div class="fi-size">${fmtSize(item.file.size)}</div>`;
 
-    const stMap = { waiting: ['q-st-wait','Waiting'], running: ['q-st-run','Translating...'], done: ['q-st-ok','✓ Done'], error: ['q-st-err','✗ Error'] };
-    const [stClass, stText] = stMap[item.status] || stMap.waiting;
-    const st = document.createElement('span');
-    st.className = 'q-st ' + stClass; st.textContent = stText; st.id = 'qst-' + i;
-
     const dl = document.createElement('button');
     dl.className = 'q-dl' + (item.status === 'done' ? ' show' : '');
-    dl.textContent = '⬇'; dl.id = 'qdl-' + i; dl.title = 'Download';
+    dl.textContent = '⬇ Download'; dl.id = 'qdl-' + i; dl.title = 'Download';
     dl.onclick = () => downloadQueueItem(i);
+
+    const stMap = { waiting: ['q-st-wait','Waiting'], running: ['q-st-run','Translating...'], error: ['q-st-err','✗ Error'] };
+    const st = document.createElement('span');
+    st.id = 'qst-' + i;
+    if (item.status === 'done') {
+      st.style.display = 'none';
+    } else {
+      const [stClass, stText] = stMap[item.status] || stMap.waiting;
+      st.className = 'q-st ' + stClass; st.textContent = stText;
+    }
 
     const del = document.createElement('button');
     del.className = 'fi-del'; del.textContent = '✕'; del.title = 'Remove';
@@ -847,10 +858,16 @@ function setQueueItemStatus(idx, status) {
   const row = document.getElementById('qi-' + idx);
   if (!row) return;
   row.className = 'q-item' + (status === 'running' ? ' running' : status === 'done' ? ' done' : status === 'error' ? ' error' : '');
-  const stMap = { waiting: ['q-st-wait','Waiting'], running: ['q-st-run','Translating...'], done: ['q-st-ok','✓ Done'], error: ['q-st-err','✗ Error'] };
-  const [stClass, stText] = stMap[status] || stMap.waiting;
   const st = document.getElementById('qst-' + idx);
-  if (st) { st.className = 'q-st ' + stClass; st.textContent = stText; }
+  if (st) {
+    if (status === 'done') {
+      st.style.display = 'none';
+    } else {
+      const stMap = { waiting: ['q-st-wait','Waiting'], running: ['q-st-run','Translating...'], error: ['q-st-err','✗ Error'] };
+      const [stClass, stText] = stMap[status] || stMap.waiting;
+      st.className = 'q-st ' + stClass; st.textContent = stText; st.style.display = '';
+    }
+  }
   const dl = document.getElementById('qdl-' + idx);
   if (dl) dl.classList.toggle('show', status === 'done');
   const del = row.querySelector('.fi-del');
