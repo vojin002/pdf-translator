@@ -121,6 +121,34 @@ h1 {
 .lsep { color: var(--dim); }
 .lhint { font-size: .75rem; color: var(--dim); }
 
+.opts-row { display: flex; align-items: center; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+.opts-lbl { font-size: .75rem; color: var(--sub); }
+.pg-inp {
+  width: 52px; padding: 2px 6px;
+  background: rgba(255,255,255,.06); border: 1px solid var(--border2);
+  border-radius: 8px; color: var(--fg); font-family: inherit;
+  font-size: .78rem; text-align: center; outline: none;
+  -moz-appearance: textfield;
+}
+.pg-inp::-webkit-inner-spin-button, .pg-inp::-webkit-outer-spin-button { -webkit-appearance: none; }
+.pg-inp:focus { border-color: var(--a1); background: rgba(129,140,248,.08); }
+.pg-sep { font-size: .78rem; color: var(--dim); }
+.opts-dot { width: 2px; height: 2px; border-radius: 50%; background: var(--dim); flex-shrink: 0; }
+.auto-lbl { display: flex; align-items: center; gap: 6px; cursor: pointer; user-select: none; }
+.auto-cb { display: none; }
+.auto-knob {
+  width: 26px; height: 15px; border-radius: 8px; flex-shrink: 0;
+  background: rgba(255,255,255,.1); border: 1px solid var(--border2);
+  position: relative; transition: background .2s, border-color .2s;
+}
+.auto-knob::after {
+  content: ''; position: absolute; width: 9px; height: 9px; border-radius: 50%;
+  background: var(--sub); top: 2px; left: 2px; transition: transform .2s, background .2s;
+}
+.auto-cb:checked + .auto-knob { background: rgba(129,140,248,.2); border-color: rgba(129,140,248,.4); }
+.auto-cb:checked + .auto-knob::after { transform: translateX(11px); background: var(--a1); }
+.auto-txt { font-size: .75rem; color: var(--sub); }
+
 .steps {
   display: flex; align-items: center; margin-bottom: 24px;
 }
@@ -582,6 +610,18 @@ h1 {
       <span class="lsep">·</span>
       <span class="lhint">Google Translate · Free · Local</span>
     </div>
+    <div class="opts-row">
+      <span class="opts-lbl">Pages</span>
+      <input type="number" id="pg-from" class="pg-inp" placeholder="1" min="1">
+      <span class="pg-sep">–</span>
+      <input type="number" id="pg-to" class="pg-inp" placeholder="end" min="1">
+      <div class="opts-dot"></div>
+      <label class="auto-lbl">
+        <input type="checkbox" class="auto-cb" id="auto-cb">
+        <span class="auto-knob"></span>
+        <span class="auto-txt">Auto-translate on drop</span>
+      </label>
+    </div>
   </div>
 
   <div class="steps">
@@ -717,6 +757,10 @@ buildLangSelect('tgt-lang', localStorage.getItem('tgt_lang') || 'sr');
 document.getElementById('src-lang').addEventListener('change', e => localStorage.setItem('src_lang', e.target.value));
 document.getElementById('tgt-lang').addEventListener('change', e => localStorage.setItem('tgt_lang', e.target.value));
 
+const autoCb = document.getElementById('auto-cb');
+autoCb.checked = localStorage.getItem('auto_start') === '1';
+autoCb.addEventListener('change', e => localStorage.setItem('auto_start', e.target.checked ? '1' : '0'));
+
 document.getElementById('btn-swap').addEventListener('click', () => {
   const src = document.getElementById('src-lang');
   const tgt = document.getElementById('tgt-lang');
@@ -844,6 +888,7 @@ function addFiles(files) {
       setStep(2);
     }
     renderQueue();
+    if (!isRunning && autoCb.checked) btnT.click();
   }
 }
 
@@ -1187,6 +1232,10 @@ function translateOne(idx) {
     fd.append('pdf', item.file);
     fd.append('src_lang', srcLang);
     fd.append('tgt_lang', tgtLang);
+    const pgFrom = parseInt(document.getElementById('pg-from').value) || 0;
+    const pgTo   = parseInt(document.getElementById('pg-to').value)   || 0;
+    if (pgFrom > 0) fd.append('page_from', pgFrom);
+    if (pgTo   > 0) fd.append('page_to',   pgTo);
     let jobId;
     try {
       const r = await fetch('/upload', {method:'POST', body:fd});

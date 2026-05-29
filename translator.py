@@ -477,7 +477,8 @@ def insert_text_block(page, rect: fitz.Rect, text: str,
 def translate_pdf(input_path: str, output_path: str = None,
                   src_lang: str = "en", tgt_lang: str = "sr",
                   progress_callback=None, pause_event=None,
-                  cancel_event=None) -> bool:
+                  cancel_event=None,
+                  page_from: int = None, page_to: int = None) -> bool:
     input_path = os.path.abspath(input_path)
     if not os.path.exists(input_path):
         _safe_print(f"Error: file not found - {input_path}")
@@ -497,9 +498,15 @@ def translate_pdf(input_path: str, output_path: str = None,
     doc = fitz.open(input_path)
     try:
         total = len(doc)
-        _safe_print(f"  Pages  : {total}")
+        p_start = max(1, page_from or 1) - 1          # 0-indexed
+        p_end   = min(total, page_to or total) - 1    # 0-indexed inclusive
+        active  = set(range(p_start, p_end + 1))
+        _safe_print(f"  Pages  : {total}  (translating {p_start+1}–{p_end+1})")
 
-        all_blocks = [extract_text_blocks(doc[i]) for i in range(total)]
+        all_blocks = [
+            extract_text_blocks(doc[i]) if i in active else []
+            for i in range(total)
+        ]
 
         # Snapshot cache keys once to avoid per-block lock acquisition
         with _cache_lock:
@@ -548,6 +555,9 @@ def translate_pdf(input_path: str, output_path: str = None,
         for i in range(total):
             if cancel_event and cancel_event.is_set():
                 return False
+
+            if i not in active:
+                continue
 
             if pause_event is not None and not pause_event.is_set():
                 if progress_callback:
