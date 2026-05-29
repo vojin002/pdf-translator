@@ -797,7 +797,7 @@ function renderQueue() {
     meta.innerHTML = `<div class="fi-name" title="${item.file.name}">${item.file.name}</div><div class="fi-size">${fmtSize(item.file.size)}</div>`;
 
     const dl = document.createElement('button');
-    dl.className = 'q-dl' + (item.status === 'done' ? ' show' : '');
+    dl.className = 'q-dl' + (item.status === 'done' && fileQueue.length > 1 ? ' show' : '');
     dl.textContent = '⬇ Download'; dl.id = 'qdl-' + i; dl.title = 'Download';
     dl.onclick = () => downloadQueueItem(i);
 
@@ -871,7 +871,7 @@ function setQueueItemStatus(idx, status) {
     }
   }
   const dl = document.getElementById('qdl-' + idx);
-  if (dl) dl.classList.toggle('show', status === 'done');
+  if (dl) dl.classList.toggle('show', status === 'done' && fileQueue.length > 1);
   const del = row.querySelector('.fi-del');
   if (del) del.style.display = status === 'waiting' ? '' : 'none';
 }
