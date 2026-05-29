@@ -208,6 +208,11 @@ h1{font-size:1.4rem;font-weight:700;letter-spacing:-.02em;line-height:1;
 .btn-launch.show{display:flex;animation:popIn .4s cubic-bezier(.34,1.56,.64,1)}
 .btn-launch:hover{background:rgba(52,211,153,.13);transform:translateY(-2px);
   box-shadow:0 6px 22px rgba(52,211,153,.18)}
+.btn-shortcut{display:none;background:rgba(129,140,248,.06);
+  border:1px solid rgba(129,140,248,.2);color:var(--a1);margin-top:8px}
+.btn-shortcut.show{display:flex;animation:popIn .4s cubic-bezier(.34,1.56,.64,1)}
+.btn-shortcut:hover{background:rgba(129,140,248,.12);transform:translateY(-2px);
+  box-shadow:0 6px 20px rgba(129,140,248,.15)}
 @keyframes popIn{from{opacity:0;transform:scale(.9) translateY(8px)}
   to{opacity:1;transform:scale(1) translateY(0)}}
 #pw{display:none;margin-top:13px}
@@ -295,6 +300,7 @@ h1{font-size:1.4rem;font-weight:700;letter-spacing:-.02em;line-height:1;
   <button class="btn btn-launch" id="btnL" onclick="launch()">
     <span>✦</span><span>Launch PDF Translator</span>
   </button>
+  __SHORTCUT_BTN__
   <div id="pw">
     <div class="prog-track"><div id="pf"></div></div>
     <div id="pt">Preparing...</div>
@@ -315,7 +321,7 @@ h1{font-size:1.4rem;font-weight:700;letter-spacing:-.02em;line-height:1;
 </main>
 <script>
 const pf=e('pf'),pt=e('pt'),btn=e('btn'),bi=e('bi'),bl=e('bl'),
-      btnL=e('btnL'),logEl=e('log'),lb=e('lb'),lc=e('lc'),lv=e('lv');
+      btnL=e('btnL'),btnS=e('btnS'),logEl=e('log'),lb=e('lb'),lc=e('lc'),lv=e('lv');
 let n=0,_evtDone=false;
 function e(id){return document.getElementById(id)}
 function setStep(s){
@@ -367,6 +373,7 @@ function go(){
             'background:rgba(129,140,248,.08);border:1px solid rgba(129,140,248,.2);'+
             'color:var(--a1);box-shadow:none';
           btnL.classList.add('show');
+          if(btnS)btnS.classList.add('show');
           addLog('All packages installed.','ok');
         } else {
           pt.innerHTML='<strong style="color:var(--err)">Installation failed.</strong>';
@@ -378,6 +385,15 @@ function go(){
     sse.onerror=()=>{if(!_evtDone){addLog('Connection error — retrying...','di');}else{sse.close();}};
   });
 }
+function mkShortcut(){
+  if(!btnS)return;
+  btnS.disabled=true;
+  btnS.innerHTML='<span class="spin">⟳</span><span>Creating...</span>';
+  fetch('/create_shortcut').then(r=>r.json()).then(d=>{
+    if(d.ok){btnS.innerHTML='<span>✓</span><span>Shortcut created!</span>';}
+    else{btnS.disabled=false;btnS.innerHTML='<span>🔗</span><span>Create Desktop Shortcut</span>';}
+  }).catch(()=>{btnS.disabled=false;});
+}
 function launch(){
   btnL.innerHTML='<span class="spin">⟳</span><span>Launching...</span>';
   btnL.disabled=true;
@@ -387,6 +403,36 @@ function launch(){
   fetch('/launch').catch(()=>{});
 }
 </script></body></html>"""
+
+
+def _create_shortcut() -> bool:
+    if _SYSTEM != "Windows":
+        return False
+    try:
+        result = subprocess.run(
+            ["powershell", "-Command", "[Environment]::GetFolderPath('Desktop')"],
+            capture_output=True, text=True, encoding="utf-8",
+        )
+        desktop = result.stdout.strip() or str(Path.home() / "Desktop")
+        lnk     = str(Path(desktop) / "PDF Translator.lnk")
+        target  = str(_dir / "Start.bat")
+        icon    = str(_dir / "icon.ico")
+        ps = (
+            f"$ws=New-Object -ComObject WScript.Shell;"
+            f"$s=$ws.CreateShortcut('{lnk}');"
+            f"$s.TargetPath='{target}';"
+            f"$s.WorkingDirectory='{str(_dir)}';"
+            f"$s.IconLocation='{icon}';"
+            f"$s.Description='PDF Translator';"
+            f"$s.Save()"
+        )
+        r = subprocess.run(
+            ["powershell", "-Command", ps],
+            capture_output=True,
+        )
+        return r.returncode == 0 and Path(lnk).exists()
+    except Exception:
+        return False
 
 
 def _build_html() -> str:
@@ -410,21 +456,38 @@ def _build_html() -> str:
         )
     else:
         linux_notice = ""
+    shortcut_btn = (
+        '<button class="btn btn-shortcut" id="btnS" onclick="mkShortcut()">'
+        '<span>🔗</span><span>Create Desktop Shortcut</span>'
+        '</button>'
+        if _SYSTEM == "Windows" else ""
+    )
     return (
         _HTML
         .replace("__VER__", sys.version.split()[0])
         .replace("__ROWS__", rows)
         .replace("__LINUX_NOTICE__", linux_notice)
+        .replace("__SHORTCUT_BTN__", shortcut_btn)
     )
 
 
 def _run_install():
+    # PEP 668: modern Debian/Ubuntu blocks pip without --break-system-packages
+    pip_extra: list = []
+    if _SYSTEM == "Linux":
+        in_venv = hasattr(sys, "real_prefix") or sys.base_prefix != sys.prefix
+        if not in_venv:
+            import glob as _g
+            if _g.glob("/usr/lib/python3*/EXTERNALLY-MANAGED") or \
+               _g.glob("/usr/local/lib/python3*/EXTERNALLY-MANAGED"):
+                pip_extra = ["--break-system-packages"]
+
     total = len(_PACKAGES)
     for idx, (pid, _ico, _name, _desc) in enumerate(_PACKAGES):
         _add_event({"t": "pkg_start", "pkg": pid})
         _add_event({"t": "prog",      "d": idx, "tot": total})
         proc = subprocess.Popen(
-            [sys.executable, "-m", "pip", "install", pid, "--upgrade"],
+            [sys.executable, "-m", "pip", "install", pid, "--upgrade"] + pip_extra,
             stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
             text=True, encoding="utf-8", errors="replace",
         )
@@ -502,6 +565,8 @@ class _H(BaseHTTPRequestHandler):
                         break
             except (BrokenPipeError, ConnectionResetError, OSError):
                 pass
+        elif p == "/create_shortcut":
+            self._json({"ok": _create_shortcut()})
         elif p == "/launch":
             import platform as _plat
             if _plat.system() == "Windows":
