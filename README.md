@@ -15,50 +15,37 @@ Translation is done through Google Translate (free, no API key needed). Only the
 
 ---
 
-## What you need
-
-**Windows**
-- Python 3.9 or newer → [download here](https://www.python.org/downloads/)
-- During installation, check **"Add Python to PATH"**
-
-**Linux**
-- Python 3.9 or newer
-- One extra command to install the desktop window engine:
-  ```bash
-  sudo apt install python3-gi gir1.2-webkit2-4.0
-  ```
-
----
-
 ## How to install and run
 
-**Windows** — just double-click `Run.pyw`.
+**Windows** — just double-click **`Start.bat`**.
 
-The first time it runs, it will automatically install everything it needs. After that it opens straight into the app.
+- If Python is not installed → it installs it automatically, then opens the app
+- If Python is already installed → opens the app directly
+
+No manual setup needed. Everything is automatic.
 
 ---
 
 **Linux** — open a terminal and run:
 
 ```bash
+sudo apt install python3-gi gir1.2-webkit2-4.0
 git clone https://github.com/vojin002/pdf-translator.git
 cd pdf-translator
 chmod +x run.sh
 ./run.sh
 ```
 
-Same as Windows — first launch installs everything, then the app opens.
-
 ---
 
 ## How to use it
 
-1. Open the app
+1. Double-click `Start.bat`
 2. Pick your source and target language — the app remembers your choice next time
 3. Drag one or more PDFs into the window, or click to browse
 4. Click **Translate PDF** or **Translate N PDFs**
-6. Wait for the progress to finish
-7. Click **⬇ Download** next to each file, or **⬇ Download all as ZIP** if you translated multiple files
+5. Wait for the progress to finish
+6. Click **⬇ Download** next to each file, or **⬇ Download all as ZIP** if you translated multiple files
 
 During translation you can **pause** ⏸, **resume** ▶, or **cancel** ✕ at any time.
 
@@ -70,15 +57,15 @@ If you minimize the window while it's working, you'll get a desktop notification
 
 If your PDF is a scanned document (pages are images, not real text), the app can still translate it — but you need to install Tesseract first:
 
+**Windows:**
+1. Download and install Tesseract from [here](https://github.com/tesseract-ocr/tesseract)
+2. Then run: `pip install pytesseract Pillow`
+
 **Linux:**
 ```bash
 sudo apt install tesseract-ocr
 pip install pytesseract Pillow
 ```
-
-**Windows:**
-1. Download and install Tesseract from [here](https://github.com/tesseract-ocr/tesseract)
-2. Then run: `pip install pytesseract Pillow`
 
 Once installed, the app detects scanned pages automatically and handles them.
 
@@ -89,4 +76,4 @@ Once installed, the app detects scanned pages automatically and handles them.
 - macOS is not supported
 - Very complex layouts (multi-column text, tables) might not look perfect after translation
 - Translation quality depends on Google Translate
-- Translation uses adaptive rate control — starts fast and automatically slows down if Google Translate limits are detected, then recovers speed once stable
+- Translation uses adaptive rate control — starts fast and automatically slows down if Google Translate rate limits are detected, then recovers
