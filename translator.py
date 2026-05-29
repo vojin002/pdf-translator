@@ -182,25 +182,39 @@ def _get_translator(src: str, tgt: str) -> GoogleTranslator:
     return getattr(_tl, key)
 
 
-_SPEED_PRESETS = {
-    'safe':   (1, 0.35),
-    'normal': (2, 0.12),
-    'fast':   (4, 0.04),
-}
+_WORKERS      = 4
+_INTERVAL_MIN = 0.05
+_INTERVAL_MAX = 3.0
+_INTERVAL_START = 0.10
+_SPEED_UP_AFTER = 12   # consecutive successes before reducing interval
 
-_api_sem       = threading.Semaphore(2)
-_rate_lock     = threading.Lock()
+_api_sem          = threading.Semaphore(_WORKERS)
+_rate_lock        = threading.Lock()
 _last_call_ts: float = 0.0
-_current_workers  = 2
-_current_interval = 0.12
+_adaptive_interval: float = _INTERVAL_START
+_adaptive_lock    = threading.Lock()
+_consecutive_ok   = 0
 
 
-def _apply_speed(speed: str):
-    global _api_sem, _current_workers, _current_interval
-    workers, interval = _SPEED_PRESETS.get(speed, _SPEED_PRESETS['normal'])
-    _current_workers  = workers
-    _current_interval = interval
-    _api_sem = threading.Semaphore(workers)
+def _is_rate_limit(exc: Exception) -> bool:
+    msg = str(exc).lower()
+    return any(k in msg for k in ('429', 'rate', 'quota', 'too many', 'limit'))
+
+
+def _on_success():
+    global _adaptive_interval, _consecutive_ok
+    with _adaptive_lock:
+        _consecutive_ok += 1
+        if _consecutive_ok >= _SPEED_UP_AFTER and _adaptive_interval > _INTERVAL_MIN:
+            _adaptive_interval = max(_INTERVAL_MIN, _adaptive_interval * 0.80)
+            _consecutive_ok = 0
+
+
+def _on_rate_limit():
+    global _adaptive_interval, _consecutive_ok
+    with _adaptive_lock:
+        _adaptive_interval = min(_INTERVAL_MAX, _adaptive_interval * 2.5)
+        _consecutive_ok = 0
 
 _CACHE_FILE = Path(__file__).parent / "translations_cache.json"
 _CACHE_MAX = 2000
@@ -288,22 +302,29 @@ def _call(text: str, src: str, tgt: str) -> str:
     global _last_call_ts
     with _api_sem:
         with _rate_lock:
-            gap = _current_interval - (time.monotonic() - _last_call_ts)
+            gap = _adaptive_interval - (time.monotonic() - _last_call_ts)
             if gap > 0:
                 time.sleep(gap)
             _last_call_ts = time.monotonic()
         tr = _get_translator(src, tgt)
-        for attempt in range(3):
+        for attempt in range(4):
             try:
                 r = tr.translate(text)
+                _on_success()
                 return r if r else text
             except Exception as e:
-                if attempt == 2:
-                    _safe_print(f"    [!] API error (3/3): {e}")
-                    return text
-                wait = 0.5 * (2 ** attempt)
-                _safe_print(f"    [!] API error (attempt {attempt+1}/3), waiting {wait}s: {e}")
-                time.sleep(wait)
+                if _is_rate_limit(e):
+                    _on_rate_limit()
+                    wait = _adaptive_interval * (attempt + 1)
+                    _safe_print(f"    [~] Rate limit — slowing down, waiting {wait:.1f}s")
+                    time.sleep(wait)
+                else:
+                    if attempt == 3:
+                        _safe_print(f"    [!] API error (4/4): {e}")
+                        return text
+                    wait = 0.5 * (2 ** attempt)
+                    _safe_print(f"    [!] API error ({attempt+1}/4), waiting {wait}s: {e}")
+                    time.sleep(wait)
     return text
 
 
@@ -459,7 +480,7 @@ def insert_text_block(page, rect: fitz.Rect, text: str,
 def translate_pdf(input_path: str, output_path: str = None,
                   src_lang: str = "en", tgt_lang: str = "sr",
                   progress_callback=None, pause_event=None,
-                  cancel_event=None, speed: str = "normal") -> bool:
+                  cancel_event=None) -> bool:
     input_path = os.path.abspath(input_path)
     if not os.path.exists(input_path):
         _safe_print(f"Error: file not found - {input_path}")
@@ -468,10 +489,8 @@ def translate_pdf(input_path: str, output_path: str = None,
         p = Path(input_path)
         output_path = str(p.parent / f"{p.stem}_translated.pdf")
 
-    _apply_speed(speed)
-
     _safe_print("\n" + "=" * 56)
-    _safe_print(f"  PDF TRANSLATOR  -  {src_lang} -> {tgt_lang}  [{speed}]")
+    _safe_print(f"  PDF TRANSLATOR  -  {src_lang} -> {tgt_lang}")
     if _OCR_AVAILABLE:
         _safe_print("  OCR: enabled")
     _safe_print("=" * 56)
@@ -504,7 +523,7 @@ def translate_pdf(input_path: str, output_path: str = None,
             done_count = 0
             if progress_callback:
                 progress_callback({"type": "translating", "done": 0, "total": len(need_api), "pages": total})
-            with ThreadPoolExecutor(max_workers=_current_workers) as pool:
+            with ThreadPoolExecutor(max_workers=_WORKERS) as pool:
                 futures = {pool.submit(translate_batch, g, src_lang, tgt_lang): len(g) for g in groups}
                 for future in as_completed(futures):
                     if cancel_event and cancel_event.is_set():

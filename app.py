@@ -84,7 +84,6 @@ def upload():
             "filename": f.filename,
             "src_lang": request.form.get("src_lang", "en"),
             "tgt_lang": request.form.get("tgt_lang", "sr"),
-            "speed":    request.form.get("speed", "normal"),
             "queue": queue.Queue(),
             "resume_event": resume_event,
             "cancel_event": cancel_event,
@@ -123,7 +122,6 @@ def _run_job(job_id: str):
             progress_callback=cb,
             pause_event=job["resume_event"],
             cancel_event=job["cancel_event"],
-            speed=job.get("speed", "normal"),
         )
         if job["cancel_event"].is_set():
             q.put({"type": "cancelled"})
