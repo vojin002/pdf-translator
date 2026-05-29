@@ -450,8 +450,8 @@ def _build_html() -> str:
             '<div class="ln-icon">🐧</div>'
             '<div>'
             '<div class="ln-title">Linux: system dependency required</div>'
-            '<div class="ln-cmd">sudo apt install python3-gi gir1.2-webkit2-4.0</div>'
-            '<div class="ln-sub">Run this command in terminal before launching the app</div>'
+            '<div class="ln-cmd">sudo apt install python3-gi gir1.2-webkit2-4.1</div>'
+            '<div class="ln-sub">Ubuntu 24.04 / Debian 12+: use 4.1 &nbsp;|&nbsp; older systems: use gir1.2-webkit2-4.0</div>'
             '</div></div>'
         )
     else:
@@ -512,7 +512,7 @@ def _run_install():
         _add_event({"t": "prog", "d": idx + 1, "tot": total})
     if _SYSTEM == "Linux" and not _linux_backend_ok():
         _add_event({"t": "done", "ok": False,
-                    "msg": "System web engine missing. Run:\nsudo apt install python3-gi gir1.2-webkit2-4.0"})
+                    "msg": "System web engine missing.\nUbuntu 24.04+/Debian 12+: sudo apt install python3-gi gir1.2-webkit2-4.1\nOlder systems: sudo apt install python3-gi gir1.2-webkit2-4.0"})
         return
     _add_event({"t": "done", "ok": True})
 

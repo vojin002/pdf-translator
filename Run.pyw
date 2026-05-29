@@ -52,7 +52,8 @@ if platform.system() == 'Linux' and _deps_ok() and not _linux_backend_ok():
         "PDF Translator — Missing dependency",
         "A web engine is required to display the interface.\n\n"
         "Install with:\n"
-        "  sudo apt install python3-gi gir1.2-webkit2-4.0\n\n"
+        "  sudo apt install python3-gi gir1.2-webkit2-4.1\n"
+        "  (older systems: gir1.2-webkit2-4.0)\n\n"
         "Or with Qt:\n"
         "  pip install PyQt5 PyQtWebEngine"
     )
