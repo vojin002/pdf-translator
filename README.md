@@ -54,15 +54,26 @@ Same as Windows — first launch installs everything, then the app opens.
 ## How to use it
 
 1. Open the app
-2. Pick your source and target language (it remembers your choice next time)
-3. Drag your PDF into the window, or click to browse
-4. Click **Translate PDF**
-5. Wait for the progress to finish
-6. Click **Download translated PDF** and save it wherever you want
+2. Pick your source and target language — the app remembers your choice next time
+3. Drag one or more PDFs into the window, or click to browse
+4. Choose translation speed (Safe / Normal / Fast)
+5. Click **Translate PDF** or **Translate N PDFs**
+6. Wait for the progress to finish
+7. Click **⬇ Download** next to each file, or **⬇ Download all as ZIP** if you translated multiple files
 
 During translation you can **pause** ⏸, **resume** ▶, or **cancel** ✕ at any time.
 
 If you minimize the window while it's working, you'll get a desktop notification when it's done.
+
+---
+
+## Translation speed
+
+| Mode | Threads | Best for |
+|------|---------|----------|
+| 🐢 Safe | 1 | Slow connections or avoiding rate limits |
+| ⚡ Normal | 2 | Everyday use (default) |
+| 🚀 Fast | 4 | Fast connections, large documents |
 
 ---
 
@@ -89,3 +100,4 @@ Once installed, the app detects scanned pages automatically and handles them.
 - macOS is not supported
 - Very complex layouts (multi-column text, tables) might not look perfect after translation
 - Translation quality depends on Google Translate
+- Fast mode may occasionally hit Google Translate rate limits

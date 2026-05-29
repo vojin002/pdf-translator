@@ -121,6 +121,22 @@ h1 {
 .lsep { color: var(--dim); }
 .lhint { font-size: .75rem; color: var(--dim); }
 
+.speed-row { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
+.speed-lbl { font-size: .72rem; color: var(--dim); flex-shrink: 0; }
+.speed-seg { display: flex; gap: 3px; }
+.seg-btn {
+  background: rgba(255,255,255,.04); border: 1px solid var(--border2);
+  border-radius: 8px; color: var(--sub); cursor: pointer;
+  font-size: .72rem; font-weight: 600; font-family: inherit;
+  padding: 3px 10px; line-height: 1.4; transition: all .2s;
+}
+.seg-btn:hover { background: rgba(255,255,255,.08); color: var(--fg); }
+.seg-btn.active {
+  background: rgba(129,140,248,.15); border-color: rgba(129,140,248,.4);
+  color: var(--a1);
+}
+.speed-hint-txt { font-size: .68rem; color: var(--dim); }
+
 .steps {
   display: flex; align-items: center; margin-bottom: 24px;
 }
@@ -583,6 +599,15 @@ h1 {
       <span class="lsep">·</span>
       <span class="lhint">Google Translate · Free · Local</span>
     </div>
+    <div class="speed-row">
+      <span class="speed-lbl">Speed:</span>
+      <div class="speed-seg" id="speed-seg">
+        <button class="seg-btn" data-speed="safe">🐢 Safe</button>
+        <button class="seg-btn active" data-speed="normal">⚡ Normal</button>
+        <button class="seg-btn" data-speed="fast">🚀 Fast</button>
+      </div>
+      <span class="speed-hint-txt" id="speed-hint">2 threads</span>
+    </div>
   </div>
 
   <div class="steps">
@@ -727,6 +752,25 @@ document.getElementById('btn-swap').addEventListener('click', () => {
   localStorage.setItem('src_lang', src.value);
   localStorage.setItem('tgt_lang', tgt.value);
 });
+
+const SPEED_HINTS = { safe: '1 thread · stable', normal: '2 threads · balanced', fast: '4 threads · may hit rate limit' };
+let currentSpeed = localStorage.getItem('speed') || 'normal';
+
+function applySpeed(speed) {
+  currentSpeed = speed;
+  localStorage.setItem('speed', speed);
+  document.querySelectorAll('.seg-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.speed === speed);
+  });
+  document.getElementById('speed-hint').textContent = SPEED_HINTS[speed] || '';
+}
+
+document.getElementById('speed-seg').addEventListener('click', e => {
+  const btn = e.target.closest('.seg-btn');
+  if (btn) applySpeed(btn.dataset.speed);
+});
+
+applySpeed(currentSpeed);
 
 if ('Notification' in window && Notification.permission === 'default') {
   Notification.requestPermission();
@@ -1191,6 +1235,7 @@ function translateOne(idx) {
     fd.append('pdf', item.file);
     fd.append('src_lang', srcLang);
     fd.append('tgt_lang', tgtLang);
+    fd.append('speed', currentSpeed);
     let jobId;
     try {
       const r = await fetch('/upload', {method:'POST', body:fd});
