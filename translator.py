@@ -16,12 +16,9 @@ def _safe_print(*args, **kwargs):
 
 
 def check_deps():
-    missing = []
-    for pkg, pip_name in [("fitz", "pymupdf"), ("deep_translator", "deep-translator")]:
-        try:
-            __import__(pkg)
-        except ImportError:
-            missing.append(pip_name)
+    import importlib.util
+    missing = [pip for pkg, pip in [("fitz", "pymupdf"), ("deep_translator", "deep-translator")]
+               if importlib.util.find_spec(pkg) is None]
     if missing:
         _safe_print(f"\n[ERROR] Missing packages. Run install.bat")
         _safe_print(f"        Or: pip install {' '.join(missing)}")

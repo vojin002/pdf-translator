@@ -21,9 +21,28 @@ except ImportError:
     print("\n[ERROR] Flask not installed. Run install.bat\n")
     sys.exit(1)
 
-import translator as core
-
 app = Flask(__name__)
+
+# Lazy-load the heavy translator module (PyMuPDF, font scan, cache) so the
+# window opens immediately; a background thread preloads it while the user
+# looks at the upload screen.
+_core = None
+_core_lock = threading.Lock()
+
+
+def _get_core():
+    global _core
+    if _core is not None:
+        return _core
+    with _core_lock:
+        if _core is None:
+            import translator
+            _core = translator
+    return _core
+
+
+def _preload_core():
+    _get_core()
 app.config["MAX_CONTENT_LENGTH"] = 100 * 1024 * 1024
 
 JOBS: dict = {}
@@ -59,9 +78,15 @@ def _cleanup_old_jobs():
 threading.Thread(target=_cleanup_old_jobs, daemon=True).start()
 
 
+_index_cache: str | None = None
+
+
 @app.route("/")
 def index():
-    return INDEX_HTML.read_text(encoding="utf-8")
+    global _index_cache
+    if _index_cache is None:
+        _index_cache = INDEX_HTML.read_text(encoding="utf-8")
+    return _index_cache
 
 
 @app.route("/upload", methods=["POST"])
@@ -114,7 +139,7 @@ def _run_job(job_id: str):
         q.put(msg)
 
     try:
-        ok = core.translate_pdf(
+        ok = _get_core().translate_pdf(
             job["input_path"],
             job["output_path"],
             src_lang=job["src_lang"],
@@ -316,12 +341,14 @@ if __name__ == "__main__":
 
     threading.Thread(target=_run_flask, daemon=True).start()
 
-    for _ in range(25):
+    for _ in range(60):
         try:
             urllib.request.urlopen(f"http://127.0.0.1:{PORT}/")
             break
         except Exception:
-            time.sleep(0.2)
+            time.sleep(0.05)
+
+    threading.Thread(target=_preload_core, daemon=True).start()
 
     webview.create_window(
         "PDF Translator",
