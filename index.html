@@ -668,7 +668,6 @@ h1 {
 
 <script>
 const LANGS = [
-  ['auto','Auto-detect'],
   ['af','Afrikaans'],['sq','Albanian'],['ar','Arabic'],['az','Azerbaijani'],
   ['be','Belarusian'],['bs','Bosnian'],['bg','Bulgarian'],['zh-CN','Chinese'],
   ['hr','Croatian'],['cs','Czech'],['da','Danish'],['nl','Dutch'],
@@ -684,35 +683,22 @@ const LANGS = [
   ['tr','Turkish'],['uk','Ukrainian'],['ur','Urdu'],['vi','Vietnamese'],
 ];
 
-function buildLangSelect(id, defaultCode, skipAuto) {
+function buildLangSelect(id, defaultCode) {
   const sel = document.getElementById(id);
   LANGS.forEach(([code, name]) => {
-    if (skipAuto && code === 'auto') return;
     const o = document.createElement('option');
     o.value = code; o.textContent = name;
     if (code === defaultCode) o.selected = true;
     sel.appendChild(o);
   });
 }
-buildLangSelect('src-lang', localStorage.getItem('src_lang') || 'auto', false);
-buildLangSelect('tgt-lang', localStorage.getItem('tgt_lang') || 'sr', true);
+buildLangSelect('src-lang', localStorage.getItem('src_lang') || 'en');
+buildLangSelect('tgt-lang', localStorage.getItem('tgt_lang') || 'sr');
 
-const btnSwap = document.getElementById('btn-swap');
-
-function updateSwapVisibility() {
-  btnSwap.style.display = document.getElementById('src-lang').value === 'auto' ? 'none' : '';
-}
-
-document.getElementById('src-lang').addEventListener('change', e => {
-  localStorage.setItem('src_lang', e.target.value);
-  updateSwapVisibility();
-  // reset auto-detect label when user manually picks a language
-  const autoOpt = document.getElementById('src-lang').querySelector('option[value="auto"]');
-  if (autoOpt) autoOpt.textContent = 'Auto-detect';
-});
+document.getElementById('src-lang').addEventListener('change', e => localStorage.setItem('src_lang', e.target.value));
 document.getElementById('tgt-lang').addEventListener('change', e => localStorage.setItem('tgt_lang', e.target.value));
 
-btnSwap.addEventListener('click', () => {
+document.getElementById('btn-swap').addEventListener('click', () => {
   const src = document.getElementById('src-lang');
   const tgt = document.getElementById('tgt-lang');
   const tmp = src.value;
@@ -720,10 +706,7 @@ btnSwap.addEventListener('click', () => {
   tgt.value = tmp;
   localStorage.setItem('src_lang', src.value);
   localStorage.setItem('tgt_lang', tgt.value);
-  updateSwapVisibility();
 });
-
-updateSwapVisibility();
 
 if ('Notification' in window && Notification.permission === 'default') {
   Notification.requestPermission();
@@ -1205,13 +1188,6 @@ function translateOne(idx) {
 
     sse.onmessage = e => {
       const msg = JSON.parse(e.data);
-
-      if (msg.type === 'detected_lang') {
-        const langName = LANGS.find(([c]) => c === msg.lang)?.[1] || msg.lang;
-        const autoOpt = document.getElementById('src-lang').querySelector('option[value="auto"]');
-        if (autoOpt) autoOpt.textContent = `Auto-detect (${langName})`;
-        addLog(`Detected language: ${langName}`, 'ok');
-      }
 
       if (msg.type === 'translating') {
         if (msg.pages && pTotal === 0) {

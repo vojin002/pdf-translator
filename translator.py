@@ -369,23 +369,6 @@ def unpack_color(color) -> tuple:
     return (0.0, 0.0, 0.0)
 
 
-def _detect_language(text: str) -> str:
-    try:
-        import urllib.request as _req, urllib.parse as _parse
-        params = _parse.urlencode({
-            'client': 'gtx', 'sl': 'auto', 'tl': 'en', 'dt': 't',
-            'q': text[:300],
-        })
-        req = _req.Request(
-            f'https://translate.googleapis.com/translate_a/single?{params}',
-            headers={'User-Agent': 'Mozilla/5.0'},
-        )
-        with _req.urlopen(req, timeout=5) as r:
-            data = json.loads(r.read())
-        return data[2] if len(data) > 2 and isinstance(data[2], str) else ''
-    except Exception:
-        return ''
-
 
 def _ocr_text(page) -> str:
     if not _OCR_AVAILABLE:
@@ -497,11 +480,6 @@ def translate_pdf(input_path: str, output_path: str = None,
 
         cached_count = len(seen) - len(need_api)
         _safe_print(f"  Unique blocks: {len(seen)}  (cached: {cached_count},  api: {len(need_api)})\n")
-
-        if src_lang == 'auto' and need_api and progress_callback:
-            detected = _detect_language(need_api[0])
-            if detected:
-                progress_callback({"type": "detected_lang", "lang": detected})
 
         if need_api:
             GROUP = 20
