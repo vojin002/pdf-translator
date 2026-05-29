@@ -501,14 +501,19 @@ def translate_pdf(input_path: str, output_path: str = None,
 
         all_blocks = [extract_text_blocks(doc[i]) for i in range(total)]
 
+        # Snapshot cache keys once to avoid per-block lock acquisition
+        with _cache_lock:
+            cache_keys = set(_cache.keys())
+
         need_api: list = []
         seen: set = set()
         for blocks in all_blocks:
             for blk in blocks:
                 n = _norm(blk["text"])
+                blk["_n"] = n  # store so write phase doesn't recompute
                 if _should_translate(n) and n not in seen:
                     seen.add(n)
-                    if _cache_get(f"{src_lang}|{tgt_lang}|{n}") is None:
+                    if f"{src_lang}|{tgt_lang}|{n}" not in cache_keys:
                         need_api.append(n)
 
         cached_count = len(seen) - len(need_api)
@@ -535,6 +540,10 @@ def translate_pdf(input_path: str, output_path: str = None,
 
         if cancel_event and cancel_event.is_set():
             return False
+
+        # Single snapshot for the write phase — all translations are in cache by now
+        with _cache_lock:
+            write_cache = dict(_cache)
 
         for i in range(total):
             if cancel_event and cancel_event.is_set():
@@ -563,8 +572,8 @@ def translate_pdf(input_path: str, output_path: str = None,
 
             translations = []
             for blk in blocks:
-                n = _norm(blk["text"])
-                tr = _cache_get(f"{src_lang}|{tgt_lang}|{n}") if _should_translate(n) else None
+                n = blk.get("_n") or _norm(blk["text"])
+                tr = write_cache.get(f"{src_lang}|{tgt_lang}|{n}") if _should_translate(n) else None
                 translations.append(tr if tr is not None else blk["text"])
 
             is_ocr_page = blocks[0].get("ocr", False)
