@@ -78,7 +78,7 @@ def _cleanup_old_jobs():
 threading.Thread(target=_cleanup_old_jobs, daemon=True).start()
 
 
-_index_cache: str | None = None
+_index_cache = None
 
 
 @app.route("/")

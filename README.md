@@ -29,7 +29,10 @@ No manual setup needed. Everything is automatic.
 **Linux** — open a terminal and run:
 
 ```bash
-sudo apt install python3-gi gir1.2-webkit2-4.0
+# Ubuntu 24.04+ / Debian 12+:
+sudo apt install python3-gi gir1.2-webkit2-4.1
+# Older systems:
+# sudo apt install python3-gi gir1.2-webkit2-4.0
 git clone https://github.com/vojin002/pdf-translator.git
 cd pdf-translator
 chmod +x run.sh
