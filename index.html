@@ -1199,8 +1199,8 @@ async function processQueue() {
   btnT.disabled = false;
   btnIcon.textContent = '✦';
   btnLabel.textContent = 'Translate PDF';
-  btnPause.style.display = ''; btnPause.disabled = false; btnPause.textContent = '⏸'; btnPause.className = '';
-  btnCancel.style.display = ''; btnCancel.disabled = false; btnCancel.textContent = '✕';
+  btnPause.style.display = 'none'; btnPause.disabled = false; btnPause.textContent = '⏸'; btnPause.className = '';
+  btnCancel.style.display = 'none'; btnCancel.disabled = false; btnCancel.textContent = '✕';
   document.title = 'PDF Translator';
   renderQueue();
 }
@@ -1223,8 +1223,8 @@ function translateOne(idx) {
     progMeta.style.display = 'none';
     pageDots.innerHTML = '';
     pausedBnr.classList.remove('show');
+    btnPause.style.display = 'none'; btnCancel.style.display = 'none';
     btnPause.textContent = '⏸'; btnPause.className = ''; btnPause.disabled = false;
-    btnPause.style.display = ''; btnCancel.style.display = '';
     isPaused = false;
 
     // upload
@@ -1254,6 +1254,7 @@ function translateOne(idx) {
 
     currentJobId = jobId;
     await fetch('/translate/' + jobId);
+    btnPause.style.display = ''; btnCancel.style.display = '';
     startTimer();
 
     let hadTranslatingPhase = false;
