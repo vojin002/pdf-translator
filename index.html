@@ -111,7 +111,6 @@ h1 {
 }
 .lsel:hover { border-color: var(--a1); background-color: rgba(129,140,248,.1); }
 .lsel option { background: #0d0d1a; color: var(--fg); }
-.larr { color: var(--a1); font-size: 1rem; font-weight: 700; }
 .lswap {
   background: none; border: 1px solid var(--border2); border-radius: 8px;
   color: var(--sub); cursor: pointer; font-size: .85rem; padding: 3px 7px;
@@ -191,41 +190,84 @@ h1 {
 .dz-t1 { font-size: .97rem; font-weight: 600; margin-bottom: 4px; }
 .dz-t2 { font-size: .78rem; color: var(--sub); }
 
-#file-info {
-  display: none;
-  align-items: center; gap: 12px;
-  background: rgba(129,140,248,.07);
-  border: 1px solid rgba(129,140,248,.18);
-  border-radius: var(--r);
-  padding: 13px 14px;
-  animation: slideUp .25s ease;
-}
-#file-info.show { display: flex; }
+/* Queue */
+#queue-section { display: none; }
+#queue-section.show { display: block; animation: slideUp .25s ease; }
 
 @keyframes slideUp {
   from { opacity: 0; transform: translateY(8px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 
+.q-list {
+  display: flex; flex-direction: column; gap: 6px;
+  max-height: 220px; overflow-y: auto;
+  padding-right: 2px;
+}
+.q-list::-webkit-scrollbar { width: 4px; }
+.q-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,.07); border-radius: 2px; }
+
+.q-item {
+  display: flex; align-items: center; gap: 10px;
+  background: rgba(129,140,248,.06);
+  border: 1px solid rgba(129,140,248,.14);
+  border-radius: 12px; padding: 10px 12px;
+  animation: slideUp .2s ease;
+  transition: border-color .2s;
+}
+.q-item.running { border-color: rgba(129,140,248,.3); background: rgba(129,140,248,.09); }
+.q-item.done    { border-color: rgba(52,211,153,.25);  background: rgba(52,211,153,.05); }
+.q-item.error   { border-color: rgba(251,113,133,.25); background: rgba(251,113,133,.05); }
+
 .fi-badge {
-  width: 40px; height: 40px; border-radius: 10px; flex-shrink: 0;
+  width: 36px; height: 36px; border-radius: 9px; flex-shrink: 0;
   background: linear-gradient(135deg, var(--a1), var(--a2));
   display: flex; align-items: center; justify-content: center;
-  font-size: .65rem; font-weight: 700; font-family: monospace;
+  font-size: .6rem; font-weight: 700; font-family: monospace;
   color: white; letter-spacing: .02em;
 }
 .fi-meta { flex: 1; min-width: 0; }
 .fi-name {
-  font-size: .88rem; font-weight: 600;
+  font-size: .85rem; font-weight: 600;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-.fi-size { font-size: .73rem; color: var(--sub); margin-top: 2px; }
+.fi-size { font-size: .7rem; color: var(--sub); margin-top: 1px; }
+
+.q-st {
+  font-size: .68rem; font-weight: 700; padding: 2px 8px; border-radius: 20px;
+  white-space: nowrap; flex-shrink: 0;
+}
+.q-st-wait { background: rgba(255,255,255,.05); color: var(--dim); border: 1px solid var(--border); }
+.q-st-run  { background: rgba(129,140,248,.13); color: var(--a1); border: 1px solid rgba(129,140,248,.25); }
+.q-st-ok   { background: rgba(52,211,153,.12);  color: var(--ok);  border: 1px solid rgba(52,211,153,.25); }
+.q-st-err  { background: rgba(251,113,133,.12); color: var(--err); border: 1px solid rgba(251,113,133,.25); }
+
+.q-dl {
+  background: none; border: 1px solid rgba(52,211,153,.3); border-radius: 8px;
+  color: var(--ok); cursor: pointer; font-size: .75rem; padding: 3px 8px;
+  line-height: 1; transition: all .2s; flex-shrink: 0; display: none;
+}
+.q-dl:hover { background: rgba(52,211,153,.1); }
+.q-dl.show { display: block; }
+
 .fi-del {
   background: none; border: none; color: var(--sub);
-  font-size: .95rem; cursor: pointer; padding: 5px 8px; border-radius: 8px;
-  transition: background .15s, color .15s; line-height: 1;
+  font-size: .85rem; cursor: pointer; padding: 4px 6px; border-radius: 7px;
+  transition: background .15s, color .15s; line-height: 1; flex-shrink: 0;
 }
 .fi-del:hover { background: rgba(251,113,133,.12); color: var(--err); }
+
+.q-footer {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-top: 8px;
+}
+.q-summary { font-size: .72rem; color: var(--dim); }
+.q-add-btn {
+  background: none; border: 1px solid var(--border2); border-radius: 8px;
+  color: var(--sub); cursor: pointer; font-size: .72rem; padding: 3px 9px;
+  font-family: inherit; transition: all .2s;
+}
+.q-add-btn:hover { color: var(--a1); border-color: var(--a1); background: rgba(129,140,248,.08); }
 
 .btn-primary {
   display: flex; align-items: center; justify-content: center; gap: 9px;
@@ -260,7 +302,6 @@ h1 {
 }
 .prog-status { font-size: .84rem; color: var(--sub); flex: 1; min-width: 0; }
 .prog-status strong { color: var(--fg); font-weight: 600; }
-
 
 #btn-pause {
   width: 30px; height: 30px; border-radius: 50%; flex-shrink: 0;
@@ -418,7 +459,6 @@ h1 {
   font-size: .68rem; color: #2a2e48;
   font-variant-numeric: tabular-nums; letter-spacing: .01em;
 }
-
 .le-ic {
   width: 18px; height: 18px; border-radius: 50%; flex-shrink: 0;
   display: flex; align-items: center; justify-content: center;
@@ -438,7 +478,6 @@ h1 {
   padding: 1px 5px; border-radius: 5px; letter-spacing: .01em;
   white-space: nowrap;
 }
-
 .le-msg {
   flex: 1; font-size: .75rem; line-height: 1.5;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
@@ -543,17 +582,16 @@ h1 {
 
   <div id="dropzone">
     <div class="dz-icon-wrap"><div class="dz-icon">📂</div></div>
-    <div class="dz-t1">Drag PDF here or click to select</div>
-    <div class="dz-t2">Supported format: PDF &nbsp;·&nbsp; Max 100 MB</div>
+    <div class="dz-t1">Drag PDFs here or click to select</div>
+    <div class="dz-t2">Supported format: PDF &nbsp;·&nbsp; Max 100 MB &nbsp;·&nbsp; Multiple files supported</div>
   </div>
 
-  <div id="file-info">
-    <div class="fi-badge">PDF</div>
-    <div class="fi-meta">
-      <div class="fi-name" id="fi-name">—</div>
-      <div class="fi-size" id="fi-size">—</div>
+  <div id="queue-section">
+    <div class="q-list" id="queue-list"></div>
+    <div class="q-footer">
+      <span class="q-summary" id="q-summary"></span>
+      <button class="q-add-btn" id="q-add-btn">+ Add more</button>
     </div>
-    <button class="fi-del" id="fi-del" title="Remove file">✕</button>
   </div>
 
   <div class="gap"></div>
@@ -620,10 +658,11 @@ h1 {
 
 </main>
 
-<input type="file" id="file-input" accept=".pdf" style="display:none">
+<input type="file" id="file-input" accept=".pdf" multiple style="display:none">
 
 <script>
 const LANGS = [
+  ['auto','Auto-detect'],
   ['af','Afrikaans'],['sq','Albanian'],['ar','Arabic'],['az','Azerbaijani'],
   ['be','Belarusian'],['bs','Bosnian'],['bg','Bulgarian'],['zh-CN','Chinese'],
   ['hr','Croatian'],['cs','Czech'],['da','Danish'],['nl','Dutch'],
@@ -639,22 +678,35 @@ const LANGS = [
   ['tr','Turkish'],['uk','Ukrainian'],['ur','Urdu'],['vi','Vietnamese'],
 ];
 
-function buildLangSelect(id, defaultCode) {
+function buildLangSelect(id, defaultCode, skipAuto) {
   const sel = document.getElementById(id);
   LANGS.forEach(([code, name]) => {
+    if (skipAuto && code === 'auto') return;
     const o = document.createElement('option');
     o.value = code; o.textContent = name;
     if (code === defaultCode) o.selected = true;
     sel.appendChild(o);
   });
 }
-buildLangSelect('src-lang', localStorage.getItem('src_lang') || 'en');
-buildLangSelect('tgt-lang', localStorage.getItem('tgt_lang') || 'sr');
+buildLangSelect('src-lang', localStorage.getItem('src_lang') || 'auto', false);
+buildLangSelect('tgt-lang', localStorage.getItem('tgt_lang') || 'sr', true);
 
-document.getElementById('src-lang').addEventListener('change', e => localStorage.setItem('src_lang', e.target.value));
+const btnSwap = document.getElementById('btn-swap');
+
+function updateSwapVisibility() {
+  btnSwap.style.display = document.getElementById('src-lang').value === 'auto' ? 'none' : '';
+}
+
+document.getElementById('src-lang').addEventListener('change', e => {
+  localStorage.setItem('src_lang', e.target.value);
+  updateSwapVisibility();
+  // reset auto-detect label when user manually picks a language
+  const autoOpt = document.getElementById('src-lang').querySelector('option[value="auto"]');
+  if (autoOpt) autoOpt.textContent = 'Auto-detect';
+});
 document.getElementById('tgt-lang').addEventListener('change', e => localStorage.setItem('tgt_lang', e.target.value));
 
-document.getElementById('btn-swap').addEventListener('click', () => {
+btnSwap.addEventListener('click', () => {
   const src = document.getElementById('src-lang');
   const tgt = document.getElementById('tgt-lang');
   const tmp = src.value;
@@ -662,42 +714,158 @@ document.getElementById('btn-swap').addEventListener('click', () => {
   tgt.value = tmp;
   localStorage.setItem('src_lang', src.value);
   localStorage.setItem('tgt_lang', tgt.value);
+  updateSwapVisibility();
 });
+
+updateSwapVisibility();
 
 if ('Notification' in window && Notification.permission === 'default') {
   Notification.requestPermission();
 }
 
-const dz         = document.getElementById('dropzone');
-const fileInput  = document.getElementById('file-input');
-const fileInfo   = document.getElementById('file-info');
-const fiName     = document.getElementById('fi-name');
-const fiSize     = document.getElementById('fi-size');
-const fiDel      = document.getElementById('fi-del');
-const btnT       = document.getElementById('btn-translate');
-const btnIcon    = document.getElementById('btn-icon');
-const btnLabel   = document.getElementById('btn-label');
-const progSec    = document.getElementById('prog-section');
-const progText   = document.getElementById('prog-text');
-const progBadge  = document.getElementById('prog-badge');
-const progFill   = document.getElementById('prog-fill');
-const progMeta   = document.getElementById('prog-meta');
-const etaVal     = document.getElementById('eta-val');
-const elapsedVal = document.getElementById('elapsed-val');
-const pageDots   = document.getElementById('page-dots');
-const pausedBnr  = document.getElementById('paused-banner');
-const logWrap    = document.getElementById('log-wrap');
-const logBody    = document.getElementById('log-body');
-const logChev    = document.getElementById('log-chev');
-const logEl      = document.getElementById('log');
-const btnDl      = document.getElementById('btn-download');
-const btnPause   = document.getElementById('btn-pause');
-const btnCancel  = document.getElementById('btn-cancel');
+const dz        = document.getElementById('dropzone');
+const fileInput = document.getElementById('file-input');
+const queueSec  = document.getElementById('queue-section');
+const queueList = document.getElementById('queue-list');
+const qSummary  = document.getElementById('q-summary');
+const qAddBtn   = document.getElementById('q-add-btn');
+const btnT      = document.getElementById('btn-translate');
+const btnIcon   = document.getElementById('btn-icon');
+const btnLabel  = document.getElementById('btn-label');
+const progSec   = document.getElementById('prog-section');
+const progText  = document.getElementById('prog-text');
+const progBadge = document.getElementById('prog-badge');
+const progFill  = document.getElementById('prog-fill');
+const progMeta  = document.getElementById('prog-meta');
+const etaVal    = document.getElementById('eta-val');
+const elapsedVal= document.getElementById('elapsed-val');
+const pageDots  = document.getElementById('page-dots');
+const pausedBnr = document.getElementById('paused-banner');
+const logWrap   = document.getElementById('log-wrap');
+const logBody   = document.getElementById('log-body');
+const logChev   = document.getElementById('log-chev');
+const logEl     = document.getElementById('log');
+const btnDl     = document.getElementById('btn-download');
+const btnPause  = document.getElementById('btn-pause');
+const btnCancel = document.getElementById('btn-cancel');
 
-let selectedFile = null, isRunning = false, isPaused = false;
+// --- Queue state ---
+let fileQueue = [];   // [{file, status:'waiting'|'running'|'done'|'error', jobId, jobFname}]
+let queueIdx  = -1;
+let isRunning = false, isPaused = false;
 let currentJobId = null;
 let tStart = null, tPagesStart = null, pDone = 0, pTotal = 0, elapsedTimer = null, pausedAt = 0;
 
+function fmtSize(b) {
+  if (b < 1024) return b+' B';
+  if (b < 1048576) return (b/1024).toFixed(1)+' KB';
+  return (b/1048576).toFixed(1)+' MB';
+}
+
+function renderQueue() {
+  if (fileQueue.length === 0) {
+    dz.style.display = '';
+    queueSec.classList.remove('show');
+    btnT.disabled = true;
+    btnDl.classList.remove('show');
+    setStep(1);
+    document.title = 'PDF Translator';
+    return;
+  }
+  dz.style.display = 'none';
+  queueSec.classList.add('show');
+
+  queueList.innerHTML = '';
+  fileQueue.forEach((item, i) => {
+    const row = document.createElement('div');
+    row.className = 'q-item' + (item.status === 'running' ? ' running' : item.status === 'done' ? ' done' : item.status === 'error' ? ' error' : '');
+    row.id = 'qi-' + i;
+
+    const badge = document.createElement('div');
+    badge.className = 'fi-badge'; badge.textContent = 'PDF';
+
+    const meta = document.createElement('div');
+    meta.className = 'fi-meta';
+    meta.innerHTML = `<div class="fi-name" title="${item.file.name}">${item.file.name}</div><div class="fi-size">${fmtSize(item.file.size)}</div>`;
+
+    const stMap = { waiting: ['q-st-wait','Waiting'], running: ['q-st-run','Translating...'], done: ['q-st-ok','✓ Done'], error: ['q-st-err','✗ Error'] };
+    const [stClass, stText] = stMap[item.status] || stMap.waiting;
+    const st = document.createElement('span');
+    st.className = 'q-st ' + stClass; st.textContent = stText; st.id = 'qst-' + i;
+
+    const dl = document.createElement('button');
+    dl.className = 'q-dl' + (item.status === 'done' ? ' show' : '');
+    dl.textContent = '⬇'; dl.id = 'qdl-' + i; dl.title = 'Download';
+    dl.onclick = () => downloadQueueItem(i);
+
+    const del = document.createElement('button');
+    del.className = 'fi-del'; del.textContent = '✕'; del.title = 'Remove';
+    del.onclick = () => removeFromQueue(i);
+    if (item.status !== 'waiting') del.style.display = 'none';
+
+    row.append(badge, meta, st, dl, del);
+    queueList.appendChild(row);
+  });
+
+  const waiting = fileQueue.filter(x => x.status === 'waiting').length;
+  const total = fileQueue.length;
+  qSummary.textContent = `${total} file${total !== 1 ? 's' : ''} · ${waiting} waiting`;
+  btnT.disabled = isRunning || waiting === 0;
+  btnLabel.textContent = waiting === 1 ? 'Translate PDF' : `Translate ${waiting} PDFs`;
+  btnIcon.textContent = '✦';
+}
+
+function addFiles(files) {
+  let added = 0;
+  for (const f of files) {
+    if (!f.name.toLowerCase().endsWith('.pdf')) continue;
+    fileQueue.push({ file: f, status: 'waiting', jobId: null, jobFname: null });
+    added++;
+  }
+  if (added > 0) {
+    if (!isRunning) {
+      clearLog();
+      progSec.classList.remove('show');
+      logWrap.classList.remove('show');
+      btnDl.classList.remove('show');
+      setStep(2);
+    }
+    renderQueue();
+  }
+}
+
+function removeFromQueue(idx) {
+  if (fileQueue[idx].status === 'running') return;
+  fileQueue.splice(idx, 1);
+  renderQueue();
+  if (fileQueue.length === 0) resetFull();
+}
+
+function setQueueItemStatus(idx, status) {
+  if (idx < 0 || idx >= fileQueue.length) return;
+  fileQueue[idx].status = status;
+  const row = document.getElementById('qi-' + idx);
+  if (!row) return;
+  row.className = 'q-item' + (status === 'running' ? ' running' : status === 'done' ? ' done' : status === 'error' ? ' error' : '');
+  const stMap = { waiting: ['q-st-wait','Waiting'], running: ['q-st-run','Translating...'], done: ['q-st-ok','✓ Done'], error: ['q-st-err','✗ Error'] };
+  const [stClass, stText] = stMap[status] || stMap.waiting;
+  const st = document.getElementById('qst-' + idx);
+  if (st) { st.className = 'q-st ' + stClass; st.textContent = stText; }
+  const dl = document.getElementById('qdl-' + idx);
+  if (dl) dl.classList.toggle('show', status === 'done');
+  const del = row.querySelector('.fi-del');
+  if (del) del.style.display = status === 'waiting' ? '' : 'none';
+}
+
+// --- Dropzone ---
+dz.addEventListener('click', () => fileInput.click());
+['dragenter','dragover'].forEach(e => dz.addEventListener(e, ev => { ev.preventDefault(); dz.classList.add('drag-over'); }));
+['dragleave','drop'].forEach(e => dz.addEventListener(e, () => dz.classList.remove('drag-over')));
+dz.addEventListener('drop', e => { e.preventDefault(); addFiles(e.dataTransfer.files); });
+fileInput.addEventListener('change', () => { addFiles(fileInput.files); fileInput.value = ''; });
+qAddBtn.addEventListener('click', () => fileInput.click());
+
+// --- Steps ---
 function setStep(n) {
   [1,2,3].forEach(i => {
     const el = document.getElementById('step-' + i);
@@ -711,43 +879,7 @@ function setStep(n) {
 }
 setStep(1);
 
-dz.addEventListener('click', () => fileInput.click());
-['dragenter','dragover'].forEach(e => dz.addEventListener(e, ev => { ev.preventDefault(); dz.classList.add('drag-over'); }));
-['dragleave','drop'].forEach(e => dz.addEventListener(e, () => dz.classList.remove('drag-over')));
-dz.addEventListener('drop', e => { e.preventDefault(); const f = e.dataTransfer.files[0]; if (f) setFile(f); });
-fileInput.addEventListener('change', () => { if (fileInput.files[0]) setFile(fileInput.files[0]); });
-
-function setFile(f) {
-  if (!f.name.toLowerCase().endsWith('.pdf')) { addLog('File is not a PDF.','err'); return; }
-  selectedFile = f;
-  fiName.textContent = f.name;
-  fiSize.textContent = fmtSize(f.size);
-  fileInfo.classList.add('show');
-  dz.style.display = 'none';
-  btnT.disabled = false;
-  btnDl.classList.remove('show');
-  clearLog();
-  setStep(2);
-}
-
-fiDel.addEventListener('click', () => {
-  selectedFile = null;
-  fileInfo.classList.remove('show');
-  dz.style.display = '';
-  btnT.disabled = true;
-  fileInput.value = '';
-  progSec.classList.remove('show');
-  logWrap.classList.remove('show');
-  pausedBnr.classList.remove('show');
-  setStep(1);
-});
-
-function fmtSize(b) {
-  if (b < 1024) return b+' B';
-  if (b < 1048576) return (b/1024).toFixed(1)+' KB';
-  return (b/1048576).toFixed(1)+' MB';
-}
-
+// --- Log ---
 let logEntryCount = 0;
 const logCountEl = document.getElementById('log-count');
 
@@ -775,24 +907,16 @@ function addLog(text, cls) {
   const icon  = icons[cls] || '·';
   const row = document.createElement('div');
   row.className = 'le';
-  const tsEl = document.createElement('span');
-  tsEl.className = 'le-ts';
-  tsEl.textContent = fmtTs();
-  const icEl = document.createElement('span');
-  icEl.className = `le-ic le-ic-${cls}`;
-  icEl.textContent = icon;
-  const pgEl = document.createElement('span');
-  pgEl.className = 'le-pg';
+  const tsEl = document.createElement('span'); tsEl.className = 'le-ts'; tsEl.textContent = fmtTs();
+  const icEl = document.createElement('span'); icEl.className = `le-ic le-ic-${cls}`; icEl.textContent = icon;
+  const pgEl = document.createElement('span'); pgEl.className = 'le-pg';
   if (pgText) {
     const badge = document.createElement('span');
-    badge.className = 'le-pg-badge';
-    badge.textContent = pgText;
+    badge.className = 'le-pg-badge'; badge.textContent = pgText;
     pgEl.appendChild(badge);
   }
   const msgEl = document.createElement('span');
-  msgEl.className = `le-msg le-msg-${cls}`;
-  msgEl.textContent = cleanMsg;
-  msgEl.title = cleanMsg;
+  msgEl.className = `le-msg le-msg-${cls}`; msgEl.textContent = cleanMsg; msgEl.title = cleanMsg;
   row.append(tsEl, icEl, pgEl, msgEl);
   logEl.appendChild(row);
   logEl.scrollTop = logEl.scrollHeight;
@@ -810,6 +934,7 @@ function clearLog() {
   logCountEl.classList.remove('has-entries');
 }
 
+// --- Page dots ---
 function buildDots(total) {
   pageDots.innerHTML = '';
   if (total > 24) {
@@ -821,11 +946,11 @@ function buildDots(total) {
   }
   for (let i = 0; i < total; i++) {
     const d = document.createElement('div');
-    d.className = 'pdot';
-    d.id = 'pd-' + i;
+    d.className = 'pdot'; d.id = 'pd-' + i;
     pageDots.appendChild(d);
   }
 }
+
 function updateDots(page, total) {
   if (total > 24) {
     const c = document.getElementById('page-counter');
@@ -841,6 +966,7 @@ function updateDots(page, total) {
   }
 }
 
+// --- Timer ---
 function fmtDur(s) {
   s = Math.max(0, Math.round(s));
   if (s < 5)   return 'less than 5 s';
@@ -849,6 +975,7 @@ function fmtDur(s) {
   if (m < 60)  return r ? `${m} min ${r} s` : `${m} min`;
   return `${Math.floor(m/60)} h ${m%60} min`;
 }
+
 function startTimer() {
   tStart = Date.now(); tPagesStart = null; pDone = 0; pTotal = 0;
   progMeta.style.display = '';
@@ -858,16 +985,19 @@ function startTimer() {
     if (tStart) elapsedVal.textContent = fmtDur((Date.now()-tStart)/1000);
   }, 1000);
 }
+
 function stopTimer() {
   clearInterval(elapsedTimer); elapsedTimer = null;
   etaVal.textContent = 'done';
 }
+
 function updateEta() {
   if (!tPagesStart || pDone === 0 || pTotal === 0) return;
   const avg = (Date.now() - tPagesStart) / 1000 / pDone;
   etaVal.textContent = pDone >= pTotal ? 'done' : '~' + fmtDur(avg * (pTotal - pDone));
 }
 
+// --- Pause / Cancel ---
 btnPause.addEventListener('click', async () => {
   if (!currentJobId) return;
   if (!isPaused) {
@@ -889,9 +1019,10 @@ btnCancel.addEventListener('click', async () => {
   btnCancel.disabled = true;
   btnCancel.textContent = '⏳';
   addLog('Cancelling translation...', 'warn');
-  await fetch('/cancel/' + currentJobId, {method: 'POST'});
+  await fetch('/cancel/' + currentJobId, {method:'POST'});
 });
 
+// --- Confetti ---
 function confetti() {
   const box = document.getElementById('confetti-box');
   const cols = ['#818cf8','#c084fc','#f472b6','#34d399','#fbbf24','#a5f3fc'];
@@ -913,168 +1044,40 @@ function confetti() {
   }
 }
 
-btnT.addEventListener('click', async () => {
-  if (!selectedFile || isRunning) return;
-  isRunning = true;
-
-  btnT.disabled = true;
-  btnIcon.innerHTML = '<span class="spin">⟳</span>';
-  btnLabel.textContent = 'Translating...';
-  btnDl.classList.remove('show');
-  progSec.classList.add('show');
-  logWrap.classList.add('show');
-  if (!logBody.classList.contains('open')) toggleLog();
-  progFill.style.width = '0%';
-  progFill.classList.remove('done','paused');
-  progBadge.className = 'prog-badge';
-  progBadge.textContent = '–';
-  progMeta.style.display = 'none';
-  pageDots.innerHTML = '';
-  pausedBnr.classList.remove('show');
-  btnPause.textContent = '⏸'; btnPause.className = ''; btnPause.disabled = false;
-  clearLog();
-  currentJobId = null; isPaused = false;
-  setStep(2);
-
-  addLog('Sending file...', 'dim');
-  const fd = new FormData();
-  fd.append('pdf', selectedFile);
-  fd.append('src_lang', document.getElementById('src-lang').value);
-  fd.append('tgt_lang', document.getElementById('tgt-lang').value);
-  let jobId;
-  try {
-    const r = await fetch('/upload', {method:'POST', body:fd});
-    const d = await r.json();
-    if (d.error) throw new Error(d.error);
-    jobId = d.job_id;
-    addLog('File received (' + jobId + ')', 'dim');
-  } catch(e) { addLog('Error: ' + e.message, 'err'); resetBtn(); return; }
-
-  currentJobId = jobId;
-  addLog('Starting translation...', 'dim');
-  await fetch('/translate/' + jobId);
-  startTimer();
-
-  let hadTranslatingPhase = false;
-  const sse = new EventSource('/stream/' + jobId);
-  sse.onmessage = e => {
-    const msg = JSON.parse(e.data);
-
-    if (msg.type === 'translating') {
-      if (msg.pages && pTotal === 0) {
-        pTotal = msg.pages;
-        buildDots(pTotal);
-        progBadge.textContent = `0 / ${pTotal}`;
-      }
-      if (msg.total === 0) {
-        progText.innerHTML = 'Applying from cache...';
-        addLog('All blocks found in cache', 'ok');
-        return;
-      }
-      hadTranslatingPhase = true;
-      const pct = Math.round(msg.done / msg.total * 50);
-      progFill.style.width = pct + '%';
-      if (msg.done === 0) {
-        progText.innerHTML = `Translating <strong>${msg.total}</strong> blocks...`;
-        addLog(`${msg.total} blocks to translate (${msg.pages} pages)`, 'dim');
-      } else {
-        progText.innerHTML = `Translating blocks: <strong>${msg.done} / ${msg.total}</strong>`;
-        if (msg.done === msg.total) {
-          addLog(`Translation done — applying to pages...`, 'ok');
-          etaVal.textContent = 'calculating...';
-        } else if (tStart && msg.done > 0) {
-          const elapsed = (Date.now() - tStart) / 1000;
-          const rate = elapsed / msg.done;
-          etaVal.textContent = '~' + fmtDur(rate * (msg.total - msg.done));
-        }
-      }
+// --- Download ---
+async function downloadFile(jobId, fname) {
+  const r = await fetch('/download/' + jobId);
+  if (!r.ok) { addLog('Error downloading: ' + fname, 'err'); return; }
+  const blob = await r.blob();
+  if (window.showSaveFilePicker) {
+    try {
+      const handle = await window.showSaveFilePicker({
+        suggestedName: fname,
+        types: [{ description: 'PDF document', accept: { 'application/pdf': ['.pdf'] } }]
+      });
+      const writable = await handle.createWritable();
+      await writable.write(blob);
+      await writable.close();
+      addLog('Saved: ' + fname, 'ok');
+      return;
+    } catch(err) {
+      if (err.name === 'AbortError') return;
     }
+  }
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = fname;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
+  addLog('Saved: ' + fname, 'ok');
+}
 
-    if (msg.type === 'progress') {
-      pTotal = msg.total;
-      if (pageDots.children.length === 0) buildDots(pTotal);
-      const base = hadTranslatingPhase ? 50 : 0;
-      const pct  = base + Math.round((msg.page - 1) / pTotal * (100 - base));
-      progFill.style.width = pct + '%';
-      progBadge.textContent = `${msg.page} / ${pTotal}`;
-      progText.innerHTML = `Writing <strong>page ${msg.page}</strong>...`;
-      updateDots(msg.page, pTotal);
-      addLog(`[${msg.page}/${pTotal}] ${msg.msg||''}`, 'dim');
-    }
-
-    if (msg.type === 'page_done') {
-      if (!tPagesStart) tPagesStart = Date.now();
-      pDone = msg.page; pTotal = msg.total;
-      const base = hadTranslatingPhase ? 50 : 0;
-      const pct  = base + Math.round(pDone / pTotal * (100 - base));
-      progFill.style.width = pct + '%';
-      updateDots(msg.page + 1, pTotal);
-      updateEta();
-      addLog(`[${pDone}/${pTotal}] Page written`, 'ok');
-    }
-
-    if (msg.type === 'paused') {
-      isPaused = true; pausedAt = Date.now();
-      btnPause.textContent = '▶'; btnPause.className = 'paused'; btnPause.disabled = false;
-      pausedBnr.classList.add('show');
-      progFill.classList.add('paused');
-      progText.innerHTML = '<strong>Paused</strong>';
-      addLog(`[⏸] Paused before page ${msg.page}`, 'warn');
-    }
-
-    if (msg.type === 'resumed') {
-      isPaused = false;
-      btnPause.textContent = '⏸'; btnPause.className = '';
-      pausedBnr.classList.remove('show');
-      progFill.classList.remove('paused');
-      progText.innerHTML = `Resuming from <strong>page ${msg.page}</strong>...`;
-      addLog(`[▶] Resumed — page ${msg.page}`, 'ok');
-    }
-
-    if (msg.type === 'cancelled') {
-      sse.close(); stopTimer();
-      btnPause.style.display = 'none';
-      btnCancel.style.display = 'none';
-      pausedBnr.classList.remove('show');
-      progText.innerHTML = '<strong>Translation cancelled</strong>';
-      progBadge.textContent = '✕ Cancelled'; progBadge.className = 'err-badge';
-      addLog('Translation cancelled', 'warn');
-      resetBtn();
-    }
-
-    if (msg.type === 'done') {
-      sse.close(); stopTimer();
-      btnPause.style.display = 'none';
-      btnCancel.style.display = 'none';
-      pausedBnr.classList.remove('show');
-      progFill.style.width = '100%';
-      progFill.classList.add('done'); progFill.classList.remove('paused');
-      progText.innerHTML = '<strong>Translation complete!</strong>';
-      progBadge.textContent = '✓ Done'; progBadge.className = 'done-badge';
-      if (pTotal > 0 && pTotal <= 24) updateDots(pTotal+1, pTotal);
-      addLog('Translation completed successfully!', 'ok');
-      if ('Notification' in window && Notification.permission === 'granted' && document.hidden) {
-        new Notification('PDF Translator', { body: 'Translation complete! Ready to download.' });
-      }
-      btnDl.dataset.jobId = jobId;
-      btnDl.dataset.fname = selectedFile.name.replace(/\.pdf$/i, '') + '_translated.pdf';
-      btnDl.classList.add('show');
-      setStep(3);
-      confetti();
-      resetBtn();
-    }
-
-    if (msg.type === 'error') {
-      sse.close(); stopTimer();
-      progText.innerHTML = '<strong>Error!</strong>';
-      progBadge.textContent = '✗ Error'; progBadge.className = 'err-badge';
-      addLog('ERROR: ' + (msg.msg||'Unknown'), 'err');
-      resetBtn();
-    }
-  };
-
-  sse.onerror = () => { addLog('Connection lost', 'err'); sse.close(); stopTimer(); resetBtn(); };
-});
+function downloadQueueItem(idx) {
+  const item = fileQueue[idx];
+  if (!item || item.status !== 'done' || !item.jobId) return;
+  const fname = item.jobFname || item.file.name.replace(/\.pdf$/i,'') + '_translated.pdf';
+  downloadFile(item.jobId, fname);
+}
 
 btnDl.addEventListener('click', async function(e) {
   e.preventDefault();
@@ -1083,43 +1086,260 @@ btnDl.addEventListener('click', async function(e) {
   if (!jid) return;
   const orig = this.innerHTML;
   this.innerHTML = '<span class="spin">⟳</span><span>Downloading...</span>';
-  try {
-    const r = await fetch('/download/' + jid);
-    if (!r.ok) { addLog('Error downloading file', 'err'); this.innerHTML = orig; return; }
-    const blob = await r.blob();
-    if (window.showSaveFilePicker) {
-      try {
-        const handle = await window.showSaveFilePicker({
-          suggestedName: fname,
-          types: [{ description: 'PDF document', accept: { 'application/pdf': ['.pdf'] } }]
-        });
-        const writable = await handle.createWritable();
-        await writable.write(blob);
-        await writable.close();
-        addLog('PDF saved!', 'ok');
-        this.innerHTML = orig;
-        return;
-      } catch(err) {
-        if (err.name === 'AbortError') { this.innerHTML = orig; return; }
-      }
-    }
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = fname;
-    document.body.appendChild(a); a.click(); document.body.removeChild(a);
-    setTimeout(() => URL.revokeObjectURL(url), 2000);
-    addLog('PDF saved!', 'ok');
-  } catch(err) { addLog('Error: ' + err.message, 'err'); }
+  await downloadFile(jid, fname);
   this.innerHTML = orig;
 });
 
-function resetBtn() {
-  isRunning = false; isPaused = false; currentJobId = null;
+// --- Translate queue ---
+btnT.addEventListener('click', () => {
+  if (isRunning) return;
+  const waiting = fileQueue.filter(x => x.status === 'waiting');
+  if (waiting.length === 0) return;
+  isRunning = true;
+  btnT.disabled = true;
+  btnIcon.innerHTML = '<span class="spin">⟳</span>';
+  btnLabel.textContent = 'Translating...';
+  btnDl.classList.remove('show');
+  progSec.classList.add('show');
+  logWrap.classList.add('show');
+  if (!logBody.classList.contains('open')) toggleLog();
+  clearLog();
+  setStep(2);
+  processQueue();
+});
+
+async function processQueue() {
+  for (let i = 0; i < fileQueue.length; i++) {
+    if (fileQueue[i].status !== 'waiting') continue;
+    queueIdx = i;
+    const doneNormally = await translateOne(i);
+    if (!doneNormally) break; // cancelled
+  }
+  const allDone = fileQueue.every(x => x.status === 'done');
+  const anyDone = fileQueue.some(x => x.status === 'done');
+  if (allDone && anyDone) {
+    setStep(3);
+    confetti();
+    if ('Notification' in window && Notification.permission === 'granted' && document.hidden) {
+      new Notification('PDF Translator', { body: `All ${fileQueue.length} files translated!` });
+    }
+  }
+  isRunning = false;
+  isPaused = false;
+  currentJobId = null;
   btnT.disabled = false;
-  btnIcon.textContent = '✦'; btnLabel.textContent = 'Translate PDF';
-  btnPause.style.display = ''; btnPause.disabled = false;
-  btnPause.textContent = '⏸'; btnPause.className = '';
+  btnIcon.textContent = '✦';
+  btnLabel.textContent = 'Translate PDF';
+  btnPause.style.display = ''; btnPause.disabled = false; btnPause.textContent = '⏸'; btnPause.className = '';
   btnCancel.style.display = ''; btnCancel.disabled = false; btnCancel.textContent = '✕';
+  document.title = 'PDF Translator';
+  renderQueue();
+}
+
+function translateOne(idx) {
+  return new Promise(async resolve => {
+    const item = fileQueue[idx];
+    const srcLang = document.getElementById('src-lang').value;
+    const tgtLang = document.getElementById('tgt-lang').value;
+
+    setQueueItemStatus(idx, 'running');
+    const qTotal = fileQueue.filter(x => x.status !== 'waiting' || x === item).length;
+    const qDone  = fileQueue.filter(x => x.status === 'done').length;
+    addLog(`─── File ${qDone + 1} / ${fileQueue.filter(x=>x.status!=='waiting'||x===item).length + fileQueue.filter(x=>x.status==='done').length}: ${item.file.name}`, 'dim');
+
+    // reset progress UI
+    progFill.style.width = '0%';
+    progFill.classList.remove('done','paused');
+    progBadge.className = 'prog-badge'; progBadge.textContent = '–';
+    progMeta.style.display = 'none';
+    pageDots.innerHTML = '';
+    pausedBnr.classList.remove('show');
+    btnPause.textContent = '⏸'; btnPause.className = ''; btnPause.disabled = false;
+    btnPause.style.display = ''; btnCancel.style.display = '';
+    isPaused = false;
+
+    // upload
+    const fd = new FormData();
+    fd.append('pdf', item.file);
+    fd.append('src_lang', srcLang);
+    fd.append('tgt_lang', tgtLang);
+    let jobId;
+    try {
+      const r = await fetch('/upload', {method:'POST', body:fd});
+      const d = await r.json();
+      if (d.error) throw new Error(d.error);
+      jobId = d.job_id;
+      item.jobId = jobId;
+      item.jobFname = item.file.name.replace(/\.pdf$/i,'') + '_translated.pdf';
+      addLog('Uploaded (' + jobId + ')', 'dim');
+    } catch(e) {
+      addLog('Upload error: ' + e.message, 'err');
+      setQueueItemStatus(idx, 'error');
+      resolve(true);
+      return;
+    }
+
+    currentJobId = jobId;
+    await fetch('/translate/' + jobId);
+    startTimer();
+
+    let hadTranslatingPhase = false;
+    const sse = new EventSource('/stream/' + jobId);
+
+    sse.onmessage = e => {
+      const msg = JSON.parse(e.data);
+
+      if (msg.type === 'detected_lang') {
+        const langName = LANGS.find(([c]) => c === msg.lang)?.[1] || msg.lang;
+        const autoOpt = document.getElementById('src-lang').querySelector('option[value="auto"]');
+        if (autoOpt) autoOpt.textContent = `Auto-detect (${langName})`;
+        addLog(`Detected language: ${langName}`, 'ok');
+      }
+
+      if (msg.type === 'translating') {
+        if (msg.pages && pTotal === 0) {
+          pTotal = msg.pages; buildDots(pTotal);
+          progBadge.textContent = `0 / ${pTotal}`;
+        }
+        if (msg.total === 0) {
+          progText.innerHTML = 'Applying from cache...';
+          addLog('All blocks found in cache', 'ok'); return;
+        }
+        hadTranslatingPhase = true;
+        const pct = Math.round(msg.done / msg.total * 50);
+        progFill.style.width = pct + '%';
+        document.title = `PDF Translator (${pct}%)`;
+        if (msg.done === 0) {
+          progText.innerHTML = `Translating <strong>${msg.total}</strong> blocks...`;
+          addLog(`${msg.total} blocks to translate (${msg.pages} pages)`, 'dim');
+        } else {
+          progText.innerHTML = `Translating blocks: <strong>${msg.done} / ${msg.total}</strong>`;
+          if (msg.done === msg.total) {
+            addLog('Translation done — applying to pages...', 'ok');
+            etaVal.textContent = 'calculating...';
+          } else if (tStart && msg.done > 0) {
+            const rate = (Date.now()-tStart)/1000/msg.done;
+            etaVal.textContent = '~' + fmtDur(rate*(msg.total-msg.done));
+          }
+        }
+      }
+
+      if (msg.type === 'progress') {
+        pTotal = msg.total;
+        if (pageDots.children.length === 0) buildDots(pTotal);
+        const base = hadTranslatingPhase ? 50 : 0;
+        const pct  = base + Math.round((msg.page - 1) / pTotal * (100 - base));
+        progFill.style.width = pct + '%';
+        document.title = `PDF Translator (${pct}%)`;
+        progBadge.textContent = `${msg.page} / ${pTotal}`;
+        progText.innerHTML = `Writing <strong>page ${msg.page}</strong>...`;
+        updateDots(msg.page, pTotal);
+        addLog(`[${msg.page}/${pTotal}] ${msg.msg||''}`, 'dim');
+      }
+
+      if (msg.type === 'page_done') {
+        if (!tPagesStart) tPagesStart = Date.now();
+        pDone = msg.page; pTotal = msg.total;
+        const base = hadTranslatingPhase ? 50 : 0;
+        const pct  = base + Math.round(pDone / pTotal * (100 - base));
+        progFill.style.width = pct + '%';
+        document.title = `PDF Translator (${pct}%)`;
+        updateDots(msg.page + 1, pTotal);
+        updateEta();
+        addLog(`[${pDone}/${pTotal}] Page written`, 'ok');
+      }
+
+      if (msg.type === 'paused') {
+        isPaused = true; pausedAt = Date.now();
+        btnPause.textContent = '▶'; btnPause.className = 'paused'; btnPause.disabled = false;
+        pausedBnr.classList.add('show');
+        progFill.classList.add('paused');
+        progText.innerHTML = '<strong>Paused</strong>';
+        document.title = 'PDF Translator — Paused';
+        addLog(`[⏸] Paused before page ${msg.page}`, 'warn');
+      }
+
+      if (msg.type === 'resumed') {
+        isPaused = false;
+        btnPause.textContent = '⏸'; btnPause.className = '';
+        pausedBnr.classList.remove('show');
+        progFill.classList.remove('paused');
+        progText.innerHTML = `Resuming from <strong>page ${msg.page}</strong>...`;
+        addLog(`[▶] Resumed — page ${msg.page}`, 'ok');
+      }
+
+      if (msg.type === 'cancelled') {
+        sse.close(); stopTimer();
+        btnPause.style.display = 'none'; btnCancel.style.display = 'none';
+        pausedBnr.classList.remove('show');
+        progText.innerHTML = '<strong>Cancelled</strong>';
+        progBadge.textContent = '✕ Cancelled'; progBadge.className = 'err-badge';
+        document.title = 'PDF Translator';
+        addLog('Translation cancelled', 'warn');
+        setQueueItemStatus(idx, 'error');
+        resolve(false);
+      }
+
+      if (msg.type === 'done') {
+        sse.close(); stopTimer();
+        btnPause.style.display = 'none'; btnCancel.style.display = 'none';
+        pausedBnr.classList.remove('show');
+        progFill.style.width = '100%';
+        progFill.classList.add('done'); progFill.classList.remove('paused');
+        if (pTotal > 0 && pTotal <= 24) updateDots(pTotal+1, pTotal);
+        progText.innerHTML = `<strong>${item.file.name}</strong> — done!`;
+        progBadge.textContent = '✓ Done'; progBadge.className = 'done-badge';
+        document.title = 'PDF Translator — Done!';
+        addLog('Translated: ' + item.file.name, 'ok');
+        setQueueItemStatus(idx, 'done');
+
+        // show single-file download button if only 1 file
+        if (fileQueue.length === 1) {
+          btnDl.dataset.jobId = jobId;
+          btnDl.dataset.fname = item.jobFname;
+          btnDl.classList.add('show');
+          if ('Notification' in window && Notification.permission === 'granted' && document.hidden) {
+            new Notification('PDF Translator', { body: 'Translation complete! Ready to download.' });
+          }
+        }
+        resolve(true);
+      }
+
+      if (msg.type === 'error') {
+        sse.close(); stopTimer();
+        progText.innerHTML = '<strong>Error!</strong>';
+        progBadge.textContent = '✗ Error'; progBadge.className = 'err-badge';
+        document.title = 'PDF Translator — Error';
+        addLog('ERROR: ' + (msg.msg||'Unknown'), 'err');
+        setQueueItemStatus(idx, 'error');
+        resolve(true);
+      }
+    };
+
+    sse.onerror = () => {
+      addLog('Connection lost', 'err');
+      sse.close(); stopTimer();
+      setQueueItemStatus(idx, 'error');
+      resolve(true);
+    };
+  });
+}
+
+function resetFull() {
+  fileQueue = []; queueIdx = -1;
+  isRunning = false; isPaused = false; currentJobId = null;
+  dz.style.display = '';
+  queueSec.classList.remove('show');
+  progSec.classList.remove('show');
+  logWrap.classList.remove('show');
+  btnDl.classList.remove('show');
+  btnT.disabled = true;
+  btnIcon.textContent = '✦'; btnLabel.textContent = 'Translate PDF';
+  btnPause.style.display = ''; btnPause.disabled = false; btnPause.textContent = '⏸'; btnPause.className = '';
+  btnCancel.style.display = ''; btnCancel.disabled = false; btnCancel.textContent = '✕';
+  document.title = 'PDF Translator';
+  clearLog();
+  setStep(1);
 }
 </script>
 </body>
