@@ -1,10 +1,12 @@
 import os
 import sys
+import io
 import time
 import json
 import uuid
 import queue
 import socket
+import zipfile
 import threading
 import tempfile
 import urllib.request
@@ -190,6 +192,31 @@ def stream(job_id):
         mimetype="text/event-stream",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )
+
+
+@app.route("/download-zip", methods=["POST"])
+def download_zip():
+    job_ids = request.json.get("jobs", [])
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
+        seen_names = {}
+        for job_id in job_ids:
+            with JOBS_LOCK:
+                job = JOBS.get(job_id)
+            if not job or not os.path.exists(job["output_path"]):
+                continue
+            stem = Path(job["filename"]).stem
+            arcname = f"{stem}_translated.pdf"
+            if arcname in seen_names:
+                seen_names[arcname] += 1
+                arcname = f"{stem}_translated_{seen_names[arcname]}.pdf"
+            else:
+                seen_names[arcname] = 1
+            zf.write(job["output_path"], arcname)
+    buf.seek(0)
+    return send_file(buf, as_attachment=True,
+                     download_name="translations.zip",
+                     mimetype="application/zip")
 
 
 @app.route("/download/<job_id>")

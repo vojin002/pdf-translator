@@ -513,6 +513,22 @@ h1 {
   box-shadow: 0 6px 24px rgba(52,211,153,.18);
 }
 
+#btn-download-zip {
+  display: none; align-items: center; justify-content: center; gap: 10px;
+  width: 100%; padding: 12px;
+  background: rgba(129,140,248,.07);
+  border: 1px solid rgba(129,140,248,.25); border-radius: var(--r);
+  color: var(--a1); font-family: inherit; font-size: .9rem; font-weight: 700;
+  cursor: pointer; margin-top: 8px;
+  transition: background .2s, transform .15s, box-shadow .2s;
+}
+#btn-download-zip.show { display: flex; animation: popIn .4s cubic-bezier(.34,1.56,.64,1); }
+#btn-download-zip:hover {
+  background: rgba(129,140,248,.13);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 24px rgba(129,140,248,.15);
+}
+
 @keyframes popIn {
   from { opacity: 0; transform: scale(.9) translateY(8px); }
   to   { opacity: 1; transform: scale(1)  translateY(0); }
@@ -655,6 +671,10 @@ h1 {
     <span>⬇</span>
     <span>Download translated PDF</span>
   </a>
+  <button id="btn-download-zip">
+    <span>⬇</span>
+    <span id="btn-zip-label">Download all as ZIP</span>
+  </button>
 
   <div class="card-ft">
     <span>Fonts preserved</span><div class="ft-dot"></div>
@@ -735,6 +755,7 @@ const logBody   = document.getElementById('log-body');
 const logChev   = document.getElementById('log-chev');
 const logEl     = document.getElementById('log');
 const btnDl     = document.getElementById('btn-download');
+const btnZip    = document.getElementById('btn-download-zip');
 const btnPause  = document.getElementById('btn-pause');
 const btnCancel = document.getElementById('btn-cancel');
 
@@ -1115,13 +1136,20 @@ async function processQueue() {
     const doneNormally = await translateOne(i);
     if (!doneNormally) break; // cancelled
   }
-  const allDone = fileQueue.every(x => x.status === 'done');
-  const anyDone = fileQueue.some(x => x.status === 'done');
-  if (allDone && anyDone) {
+  const donItems = fileQueue.filter(x => x.status === 'done');
+  const allDone  = fileQueue.every(x => x.status === 'done');
+  if (donItems.length > 0) {
     setStep(3);
     confetti();
+    if (donItems.length > 1) {
+      const count = donItems.length;
+      document.getElementById('btn-zip-label').textContent = `Download all ${count} files as ZIP`;
+      btnZip.classList.add('show');
+    }
     if ('Notification' in window && Notification.permission === 'granted' && document.hidden) {
-      new Notification('PDF Translator', { body: `All ${fileQueue.length} files translated!` });
+      new Notification('PDF Translator', {
+        body: donItems.length > 1 ? `All ${donItems.length} files translated!` : 'Translation complete!'
+      });
     }
   }
   isRunning = false;
@@ -1318,6 +1346,30 @@ function translateOne(idx) {
   });
 }
 
+btnZip.addEventListener('click', async () => {
+  const jobs = fileQueue.filter(x => x.status === 'done' && x.jobId).map(x => x.jobId);
+  if (jobs.length === 0) return;
+  const orig = btnZip.innerHTML;
+  btnZip.innerHTML = '<span class="spin">⟳</span><span>Preparing ZIP...</span>';
+  btnZip.disabled = true;
+  try {
+    const r = await fetch('/download-zip', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({jobs})
+    });
+    if (!r.ok) { addLog('ZIP download error', 'err'); btnZip.innerHTML = orig; btnZip.disabled = false; return; }
+    const blob = await r.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'translations.zip';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+    addLog(`ZIP saved (${jobs.length} files)`, 'ok');
+  } catch(e) { addLog('ZIP error: ' + e.message, 'err'); }
+  btnZip.innerHTML = orig; btnZip.disabled = false;
+});
+
 function resetFull() {
   fileQueue = []; queueIdx = -1;
   isRunning = false; isPaused = false; currentJobId = null;
@@ -1326,6 +1378,7 @@ function resetFull() {
   progSec.classList.remove('show');
   logWrap.classList.remove('show');
   btnDl.classList.remove('show');
+  btnZip.classList.remove('show'); btnZip.disabled = false;
   btnT.disabled = true;
   btnIcon.textContent = '✦'; btnLabel.textContent = 'Translate PDF';
   btnPause.style.display = ''; btnPause.disabled = false; btnPause.textContent = '⏸'; btnPause.className = '';
