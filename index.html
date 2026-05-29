@@ -112,6 +112,13 @@ h1 {
 .lsel:hover { border-color: var(--a1); background-color: rgba(129,140,248,.1); }
 .lsel option { background: #0d0d1a; color: var(--fg); }
 .larr { color: var(--a1); font-size: 1rem; font-weight: 700; }
+.lswap {
+  background: none; border: 1px solid var(--border2); border-radius: 8px;
+  color: var(--sub); cursor: pointer; font-size: .85rem; padding: 3px 7px;
+  line-height: 1; transition: all .2s;
+}
+.lswap:hover { background: rgba(129,140,248,.1); color: var(--a1); border-color: var(--a1); }
+.page-counter { font-size: .75rem; color: var(--sub); font-variant-numeric: tabular-nums; }
 .lsep { color: var(--dim); }
 .lhint { font-size: .75rem; color: var(--dim); }
 
@@ -510,7 +517,7 @@ h1 {
     </div>
     <div class="lang-row">
       <select id="src-lang" class="lpill lsel"></select>
-      <span class="larr">→</span>
+      <button class="lswap" id="btn-swap" title="Swap languages">⇄</button>
       <select id="tgt-lang" class="lpill lsel"></select>
       <span class="lsep">·</span>
       <span class="lhint">Google Translate · Free · Local</span>
@@ -646,6 +653,16 @@ buildLangSelect('tgt-lang', localStorage.getItem('tgt_lang') || 'sr');
 
 document.getElementById('src-lang').addEventListener('change', e => localStorage.setItem('src_lang', e.target.value));
 document.getElementById('tgt-lang').addEventListener('change', e => localStorage.setItem('tgt_lang', e.target.value));
+
+document.getElementById('btn-swap').addEventListener('click', () => {
+  const src = document.getElementById('src-lang');
+  const tgt = document.getElementById('tgt-lang');
+  const tmp = src.value;
+  src.value = tgt.value;
+  tgt.value = tmp;
+  localStorage.setItem('src_lang', src.value);
+  localStorage.setItem('tgt_lang', tgt.value);
+});
 
 if ('Notification' in window && Notification.permission === 'default') {
   Notification.requestPermission();
@@ -795,7 +812,13 @@ function clearLog() {
 
 function buildDots(total) {
   pageDots.innerHTML = '';
-  if (total > 24) return;
+  if (total > 24) {
+    const s = document.createElement('span');
+    s.className = 'page-counter'; s.id = 'page-counter';
+    s.textContent = 'Page 0 / ' + total;
+    pageDots.appendChild(s);
+    return;
+  }
   for (let i = 0; i < total; i++) {
     const d = document.createElement('div');
     d.className = 'pdot';
@@ -804,7 +827,11 @@ function buildDots(total) {
   }
 }
 function updateDots(page, total) {
-  if (total > 24) return;
+  if (total > 24) {
+    const c = document.getElementById('page-counter');
+    if (c) c.textContent = 'Page ' + Math.min(page - 1, total) + ' / ' + total;
+    return;
+  }
   for (let i = 0; i < total; i++) {
     const d = document.getElementById('pd-' + i);
     if (!d) continue;
