@@ -287,6 +287,45 @@ def download(job_id):
     )
 
 
+def _flash_taskbar():
+    if sys.platform != "win32":
+        return
+    try:
+        import ctypes, ctypes.wintypes
+        pid = os.getpid()
+        found = []
+
+        WNDENUMPROC = ctypes.WINFUNCTYPE(ctypes.c_bool, ctypes.c_void_p, ctypes.c_void_p)
+        def _cb(hwnd, _):
+            dw = ctypes.wintypes.DWORD()
+            ctypes.windll.user32.GetWindowThreadProcessId(hwnd, ctypes.byref(dw))
+            if dw.value == pid and ctypes.windll.user32.IsWindowVisible(hwnd):
+                found.append(hwnd)
+            return True
+
+        ctypes.windll.user32.EnumWindows(WNDENUMPROC(_cb), 0)
+        if not found:
+            return
+
+        class FLASHWINFO(ctypes.Structure):
+            _fields_ = [("cbSize", ctypes.c_uint), ("hwnd", ctypes.c_void_p),
+                         ("dwFlags", ctypes.c_uint), ("uCount", ctypes.c_uint),
+                         ("dwTimeout", ctypes.c_uint)]
+
+        fwi = FLASHWINFO(cbSize=ctypes.sizeof(FLASHWINFO), hwnd=found[0],
+                          dwFlags=0x0F,  # FLASHW_ALL | FLASHW_TIMERNOFG
+                          uCount=0, dwTimeout=0)
+        ctypes.windll.user32.FlashWindowEx(ctypes.byref(fwi))
+    except Exception:
+        pass
+
+
+@app.route("/notify-done", methods=["POST"])
+def notify_done():
+    threading.Thread(target=_flash_taskbar, daemon=True).start()
+    return jsonify({"ok": True})
+
+
 def _find_free_port(start: int = 5173) -> int:
     for port in range(start, start + 100):
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
