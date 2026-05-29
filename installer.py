@@ -1,7 +1,9 @@
-import os, sys, re, json, time, threading, subprocess, urllib.request
+import os, sys, re, json, time, threading, subprocess, urllib.request, platform
 from pathlib import Path
 from http.server import BaseHTTPRequestHandler
 from socketserver import ThreadingMixIn, TCPServer
+
+_SYSTEM = platform.system()  # 'Windows', 'Linux', 'Darwin'
 
 class _ThreadingHTTPServer(ThreadingMixIn, TCPServer):
     daemon_threads = True
@@ -38,6 +40,26 @@ def _webview_ok() -> bool:
         return True
     except ImportError:
         return False
+
+
+def _linux_backend_ok() -> bool:
+    try:
+        import gi
+        try:
+            gi.require_version('WebKit2', '4.0')
+        except ValueError:
+            gi.require_version('WebKit2', '4.1')
+        from gi.repository import WebKit2
+        return True
+    except Exception:
+        pass
+    for qt in ('PyQt5.QtWebEngineWidgets', 'PyQt6.QtWebEngineWidgets'):
+        try:
+            __import__(qt)
+            return True
+        except ImportError:
+            pass
+    return False
 
 
 def _bootstrap() -> bool:
@@ -238,6 +260,16 @@ h1{font-size:1.4rem;font-weight:700;letter-spacing:-.02em;line-height:1;
 .ft-dot{width:2px;height:2px;border-radius:50%;background:var(--dim)}
 .spin{display:inline-block;animation:rot .7s linear infinite}
 @keyframes rot{to{transform:rotate(360deg)}}
+.linux-notice{display:flex;align-items:flex-start;gap:11px;
+  background:rgba(251,191,36,.06);border:1px solid rgba(251,191,36,.25);
+  border-radius:11px;padding:12px 14px;margin-bottom:14px}
+.ln-icon{font-size:1.2rem;flex-shrink:0;margin-top:1px}
+.ln-title{font-size:.8rem;font-weight:700;color:var(--warn);margin-bottom:5px}
+.ln-cmd{font-family:'Cascadia Code','Consolas',monospace;font-size:.72rem;
+  background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.07);
+  border-radius:6px;padding:4px 9px;color:#e2e8f0;margin-bottom:4px;
+  user-select:all;cursor:text}
+.ln-sub{font-size:.68rem;color:var(--sub)}
 </style></head><body>
 <div class="orb orb1"></div><div class="orb orb2"></div><div class="orb orb3"></div>
 <main class="card">
@@ -255,6 +287,7 @@ h1{font-size:1.4rem;font-weight:700;letter-spacing:-.02em;line-height:1;
     <div class="step-line" id="l2"></div>
     <div class="step" id="s3"><div class="sn">3</div><div class="sl">Done</div></div>
   </div>
+  __LINUX_NOTICE__
   <div class="pkg-list">__ROWS__</div>
   <button class="btn btn-install" id="btn" onclick="go()">
     <span id="bi">⬇</span><span id="bl">Install packages</span>
@@ -338,7 +371,7 @@ function go(){
         } else {
           pt.innerHTML='<strong style="color:var(--err)">Installation failed.</strong>';
           btn.disabled=false; btn.style.cssText=''; bi.textContent='↺'; bl.textContent='Try again';
-          addLog('Check the log for details.','er');
+          addLog(d.msg || 'Check the log for details.', 'er');
         }
       }
     };
@@ -365,7 +398,24 @@ def _build_html() -> str:
         f'<div class="pkg-st" id="st-{pid}">Waiting</div></div>'
         for pid, ico, name, desc in _PACKAGES
     )
-    return _HTML.replace("__VER__", sys.version.split()[0]).replace("__ROWS__", rows)
+    if _SYSTEM == "Linux":
+        linux_notice = (
+            '<div class="linux-notice">'
+            '<div class="ln-icon">🐧</div>'
+            '<div>'
+            '<div class="ln-title">Linux: system dependency required</div>'
+            '<div class="ln-cmd">sudo apt install python3-gi gir1.2-webkit2-4.0</div>'
+            '<div class="ln-sub">Run this command in terminal before launching the app</div>'
+            '</div></div>'
+        )
+    else:
+        linux_notice = ""
+    return (
+        _HTML
+        .replace("__VER__", sys.version.split()[0])
+        .replace("__ROWS__", rows)
+        .replace("__LINUX_NOTICE__", linux_notice)
+    )
 
 
 def _run_install():
@@ -397,6 +447,10 @@ def _run_install():
             _add_event({"t": "done", "ok": False})
             return
         _add_event({"t": "prog", "d": idx + 1, "tot": total})
+    if _SYSTEM == "Linux" and not _linux_backend_ok():
+        _add_event({"t": "done", "ok": False,
+                    "msg": "System web engine missing. Run:\nsudo apt install python3-gi gir1.2-webkit2-4.0"})
+        return
     _add_event({"t": "done", "ok": True})
 
 
@@ -489,15 +543,6 @@ if __name__ == "__main__":
     if sys.version_info < (3, 9):
         _show_error(f"Python 3.9+ is required.\nYou have {sys.version_info.major}.{sys.version_info.minor}.")
         sys.exit(1)
-
-    if sys.version_info >= (3, 13):
-        _show_error(
-            f"Warning: Python {sys.version_info.major}.{sys.version_info.minor} "
-            f"is too new — packages like PyMuPDF do not have prebuilt wheels for this version.\n\n"
-            "Recommended version: Python 3.11 or 3.12\n"
-            "Download at: python.org/downloads\n\n"
-            "You can continue, but installation may be slow or fail."
-        )
 
     if not _bootstrap():
         _show_error("pywebview could not be installed.\n\nTry manually:\n  pip install pywebview")

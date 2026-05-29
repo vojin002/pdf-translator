@@ -4,5 +4,6 @@ __pycache__/
 
 translations_cache.json
 icon.ico
+.font_cache
 
 .claude/

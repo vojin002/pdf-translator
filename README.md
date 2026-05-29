@@ -1,106 +1,91 @@
 # PDF Translator
 
-Desktop application for translating PDF documents from English to Serbian (or any supported language pair) while preserving the original layout, fonts, and text arrangement.
+A desktop app that translates PDF files from one language to another while keeping the original look — same layout, same fonts, same structure.
 
-![Python](https://img.shields.io/badge/Python-3.9--3.12-blue)
-![Platform](https://img.shields.io/badge/Platform-Windows-lightgrey)
-
----
-
-## Features
-
-- **Layout preservation** — text is translated directly inside the PDF without disrupting the arrangement
-- **Original fonts** — uses Windows system fonts that match the originals
-- **Translation cache** — once translated, blocks are stored locally and not sent to the API again
-- **Pause / resume** — translation can be paused and resumed at any time
-- **Real-time progress** — tracks progress by blocks and pages with an estimated time remaining
-- **Local** — everything stays on your machine; no documents are sent to external servers (only text goes to Google Translate)
-- **Free** — uses Google Translate without an API key
+![Python](https://img.shields.io/badge/Python-3.9+-blue)
+![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20Linux-lightgrey)
 
 ---
 
-## Requirements
+## What does it do?
 
-- **Windows** 10 or later
-- **Python 3.9 – 3.12** (recommended: [Python 3.12](https://www.python.org/downloads/release/python-3120/))
-  - Python 3.13+ is not currently supported because packages lack prebuilt wheels for those versions
-  - Make sure to check **"Add Python to PATH"** during Python installation
+You drag in a PDF, pick the languages, click Translate — and get back a translated PDF that looks just like the original. No subscriptions, no uploading your files to some website. Everything runs on your computer.
+
+Translation is done through Google Translate (free, no API key needed). Only the text from your PDF is sent — not the file itself.
 
 ---
 
-## Installation and Running
+## What you need
 
-### 1. Download the project
+**Windows**
+- Python 3.9 or newer → [download here](https://www.python.org/downloads/)
+- During installation, check **"Add Python to PATH"**
+
+**Linux**
+- Python 3.9 or newer
+- One extra command to install the desktop window engine:
+  ```bash
+  sudo apt install python3-gi gir1.2-webkit2-4.0
+  ```
+
+---
+
+## How to install and run
+
+**Windows** — just double-click `Run.pyw`.
+
+The first time it runs, it will automatically install everything it needs. After that it opens straight into the app.
+
+---
+
+**Linux** — open a terminal and run:
 
 ```bash
-git clone https://github.com/vojin002/pdf-translator-sr.git
+git clone https://github.com/vojin002/pdf-translator.git
+cd pdf-translator
+chmod +x run.sh
+./run.sh
 ```
 
-or download the ZIP from GitHub and extract it.
-
-### 2. Run
-
-Double-click **`Run.pyw`** — that is the only file you need.
-
-- If packages **are not installed** → the installer opens automatically
-- If packages **are already installed** → the application starts immediately
-
-> **Note:** Python 3.9–3.12 is required. Make sure to check **"Add Python to PATH"** during Python installation.
+Same as Windows — first launch installs everything, then the app opens.
 
 ---
 
-## Usage
+## How to use it
 
-1. **Select PDF** — drag a file into the window or click to browse
-2. **Translate PDF** — click the button and follow the real-time progress
-3. **Download** — once finished, click "Download translated PDF" and choose a save location
+1. Open the app
+2. Pick your source and target language (it remembers your choice next time)
+3. Drag your PDF into the window, or click to browse
+4. Click **Translate PDF**
+5. Wait for the progress to finish
+6. Click **Download translated PDF** and save it wherever you want
 
-### Pause and resume
+During translation you can **pause** ⏸, **resume** ▶, or **cancel** ✕ at any time.
 
-During translation you can pause the process by clicking `⏸` and resume it by clicking `▶`.
-
----
-
-## Project structure
-
-```
-pdf-prevodilac/
-├── Run.pyw              # Single launcher — checks deps, installs if needed
-├── app.py               # Flask server + pywebview
-├── translator.py        # Translation logic, font matching, cache
-├── installer.py         # Graphical installer (launched automatically)
-├── index.html           # Frontend UI
-└── translations_cache.json  # Local translation cache (generated automatically)
-```
+If you minimize the window while it's working, you'll get a desktop notification when it's done.
 
 ---
 
-## Technical details
+## Scanned PDFs (optional)
 
-| Component | Technology |
-|---|---|
-| GUI | pywebview (Microsoft Edge WebView2) |
-| Backend | Flask (local server, port 5173) |
-| PDF processing | PyMuPDF (fitz) |
-| Translation | deep-translator → Google Translate |
-| Streaming | Server-Sent Events (SSE) |
-| Cache | JSON file, max 5000 entries |
+If your PDF is a scanned document (pages are images, not real text), the app can still translate it — but you need to install Tesseract first:
 
-### How translation works
+**Linux:**
+```bash
+sudo apt install tesseract-ocr
+pip install pytesseract Pillow
+```
 
-1. All text blocks are extracted from the PDF
-2. Duplicate blocks are deduplicated — identical text is translated only once
-3. Blocks are grouped into batch requests of 20 (separator-based batching)
-4. Parallel API calls (2 threads) speed up translation
-5. Original text is erased by redaction (white rectangles)
-6. Translated text is written back in the same position with the original font and size
-7. If the translated text does not fit, it is automatically scaled down (5 scaling steps)
+**Windows:**
+1. Download and install Tesseract from [here](https://github.com/tesseract-ocr/tesseract)
+2. Then run: `pip install pytesseract Pillow`
+
+Once installed, the app detects scanned pages automatically and handles them.
 
 ---
 
 ## Known limitations
 
-- Works on **Windows** only (uses the Windows Fonts directory)
-- PDFs with text as images (scanned documents) **are not supported** — selectable text is required
+- macOS is not supported
+- Very complex layouts (multi-column text, tables) might not look perfect after translation
 - Translation quality depends on Google Translate
-- Complex PDF layouts (multi-column text, tables) may have imprecise positioning

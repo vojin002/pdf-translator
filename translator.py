@@ -100,7 +100,34 @@ def _scan_fonts(dirs: list) -> dict:
     return index
 
 
-_FAMILY_INDEX = _scan_fonts(_font_dirs())
+def _load_family_index() -> dict:
+    import hashlib, pickle
+    dirs = _font_dirs()
+    mtimes = []
+    for d in dirs:
+        if os.path.isdir(d):
+            try:
+                mtimes.append(os.path.getmtime(d))
+            except OSError:
+                pass
+    key = hashlib.md5((str(dirs) + str(mtimes)).encode()).hexdigest()
+    cache_path = Path(__file__).parent / ".font_cache"
+    try:
+        with open(cache_path, "rb") as f:
+            stored_key, index = pickle.load(f)
+        if stored_key == key:
+            return index
+    except Exception:
+        pass
+    index = _scan_fonts(dirs)
+    try:
+        with open(cache_path, "wb") as f:
+            pickle.dump((key, index), f)
+    except Exception:
+        pass
+    return index
+
+_FAMILY_INDEX = _load_family_index()
 
 _DEFAULT_FONT: str = ""
 for _fam in ("arial", "helvetica", "liberationsans", "freesans",
